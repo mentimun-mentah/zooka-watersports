@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+flask-bcrypt
+flask-restful
+flask-jwt-extended
+marshmallow
+psycopg2-binary
+python-dotenv
+flake8
