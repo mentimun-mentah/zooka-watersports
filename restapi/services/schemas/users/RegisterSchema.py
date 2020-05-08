@@ -17,3 +17,7 @@ class RegisterSchema(Schema):
     def validate_password_confirm(self,data,**kwargs):
         if data['password'] != data['confirm_password']:
             raise ValidationError({'password':['Password must match with confirmation.']})
+
+    @validates('terms')
+    def validate_terms(self,value):
+        if not value: raise ValidationError('Terms must be checked.')
