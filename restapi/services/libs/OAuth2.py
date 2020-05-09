@@ -1,22 +1,23 @@
+import os
 from flask_restful import Resource, request
 from flask import session, redirect
 from requests_oauthlib import OAuth2Session
 
-_GOOGLE_CLIENT_ID = "1058335432158-krp6d335sk1olhhio0uiur69d6op8803.apps.googleusercontent.com"
-_GOOGLE_CLIENT_SECRET = "yNZ5iRQYLDUjnInyLIsnbD85"
+_GOOGLE_CLIENT_ID = os.getenv("GOOGLE_ID")
+_GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_SECRET")
 _GOOGLE_AUTHORIZATION_BASE_URL = "https://accounts.google.com/o/oauth2/auth"
 _GOOGLE_TOKEN_URL = "https://www.googleapis.com/oauth2/v4/token"
-_GOOGLE_REDIRECT_URI = "http://localhost:5000/login/google/authorized"
+_GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_URL")
 _GOOGLE_SCOPE = [
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
 ]
 
-_FACEBOOK_CLIENT_ID = "296063704727141"
-_FACBEOOK_CLIENT_SECRET = "74e650d0e357391d7298d73f46c2f2e6"
+_FACEBOOK_CLIENT_ID = os.getenv("FB_ID")
+_FACBEOOK_CLIENT_SECRET = os.getenv("FB_SECRET")
 _FACEBOOK_AUTHORIZATION_BASE_URL = "https://www.facebook.com/v3.3/dialog/oauth"
 _FACEBOOK_TOKEN_URL = "https://graph.facebook.com/v3.3/oauth/access_token"
-_FACEBOOK_REDIRECT_URI = "http://localhost:5000/login/facebook/authorized"
+_FACEBOOK_REDIRECT_URI = os.getenv("FB_URL")
 _FACEBOOK_SCOPE = ["email"]
 
 class GoogleLogin(Resource):
