@@ -48,4 +48,4 @@ __pycache__
 # ignore for backend
 env
 migrations
-redis-5.0.8
+redis-*

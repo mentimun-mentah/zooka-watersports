@@ -7,4 +7,6 @@ flask-jwt-extended
 marshmallow
 psycopg2-binary
 python-dotenv
+pytest
 flake8
+redis

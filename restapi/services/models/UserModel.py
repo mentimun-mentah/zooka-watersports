@@ -24,6 +24,12 @@ class User(db.Model):
         self.password = bcrypt.generate_password_hash(args['password']).decode("utf-8")
         self.terms = args['terms']
 
+    def check_pass(self,password: str) -> bool:
+        return bcrypt.check_password_hash(self.password,password)
+
+    def hash_password(self,password: str) -> "User":
+        self.password = bcrypt.generate_password_hash(password).decode("utf-8")
+
     def save_to_db(self) -> None:
         db.session.add(self)
         db.session.commit()
