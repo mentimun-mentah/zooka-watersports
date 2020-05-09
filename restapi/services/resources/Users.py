@@ -8,8 +8,11 @@ from flask_jwt_extended import (
     get_raw_jwt,
     get_jti
 )
+from marshmallow import ValidationError
+from services.models.PasswordResetModel import PasswordReset
 from services.models.ConfirmationModel import Confirmation
 from services.models.UserModel import User
+from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema
 from services.schemas.users.RegisterSchema import RegisterSchema
 from services.schemas.users.UserSchema import UserSchema
 from services.libs.MailSmtp import MailSmtpException
@@ -34,17 +37,15 @@ class RegisterUser(Resource):
             return {"error":str(err)}, 500
         return {"message":"Check your email to activated user."}, 201
 
-class ConfirmUser(Resource):
-    def get(self,token: str):
+class ConfirmEmail(Resource):
+    def put(self,token: str):
         confirmation = Confirmation.query.filter_by(id=token).first_or_404(description='Token not found')
         if confirmation.activated:
             return {"message":"Your account already activated."}, 200
 
-        if not confirmation.token_is_expired:
-            confirmation.activated = True
-            confirmation.save_to_db()
-            return {"message":f"Your email {confirmation.user.email} has been activated"}, 200
-        return {"message":"Upps token expired, you can resend email confirm again"}, 400
+        confirmation.activated = True
+        confirmation.save_to_db()
+        return {"message":f"Your email {confirmation.user.email} has been activated"}, 200
 
 class ResendEmail(Resource):
     def post(self):
@@ -58,7 +59,6 @@ class ResendEmail(Resource):
         if user.confirmation.resend_expired is None or user.confirmation.resend_is_expired:
             try:
                 user.confirmation.send_email_confirm()
-                user.confirmation.change_expired()
                 user.confirmation.generate_resend_expired()
                 user.confirmation.save_to_db()
                 return {"message":"Email confirmation has send"}, 200
@@ -108,3 +108,52 @@ class RefreshTokenRevoke(Resource):
         jti = get_raw_jwt()['jti']
         conn_redis.set(jti, 'true', _REFRESH_EXPIRES)
         return {"message":"Refresh token revoked."}, 200
+
+class SendPasswordReset(Resource):
+    def post(self):
+        _user_schema = UserSchema(only=("email",))
+        data = request.get_json()
+        args = _user_schema.load(data)
+        user = User.query.filter_by(email=args['email']).first()
+        if not user:
+            raise ValidationError({'email':["We can't find a user with that e-mail address."]})
+        if not user.confirmation.activated:
+            return {"message":"Please activated you're user first"}, 400
+
+        password_reset = PasswordReset.query.filter_by(email=args['email']).first()
+        if password_reset is None:
+            try:
+                reset = PasswordReset(args['email'])
+                reset.save_to_db()
+                reset.send_email_reset_password()
+            except MailSmtpException as err:
+                reset.delete_from_db()
+                return {"error":str(err)}, 500
+            return {"message":"We have e-mailed your password reset link!"}, 200
+
+        if password_reset.resend_is_expired:
+            try:
+                password_reset.send_email_reset_password()
+                password_reset.change_resend_expired()
+                password_reset.save_to_db()
+            except MailSmtpException as err:
+                return {"error":str(err)}, 500
+            return {"message":"We have e-mailed your password reset link!"}, 200
+
+        return {"message":"You can try 5 minute later"}, 400
+
+class ResetPassword(Resource):
+    def put(self,token: str):
+        _reset_password_schema = ResetPasswordSchema()
+        data = request.get_json()
+        args = _reset_password_schema.load(data)
+
+        password_reset = PasswordReset.query.filter_by(id=token).first_or_404('Token not found')
+        if password_reset.email != args['email']:
+            raise ValidationError({'email':['This password reset token is invalid.']})
+
+        user = User.query.filter_by(email=args['email']).first()
+        user.hash_password(args['password'])
+        user.save_to_db()
+        password_reset.delete_from_db()
+        return {"message":"Successfully reset your password"}, 200
