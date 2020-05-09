@@ -21,7 +21,6 @@ from services.serve import conn_redis
 _ACCESS_EXPIRES = 15 * 60  # 15 minute
 _REFRESH_EXPIRES = 30 * 86400  # 30 days
 
-
 class RegisterUser(Resource):
     def post(self):
         _register_schema = RegisterSchema()
