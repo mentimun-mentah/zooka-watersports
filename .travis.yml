@@ -17,3 +17,8 @@ before_script:
   - flask db upgrade
   - cd services/tests/system
 script: pytest -v
+before_install:
+  - pip install coveralls
+after_success:
+  - tox -e coverage-report
+  - coveralls
