@@ -6,6 +6,7 @@ env:
 language: python
 python:
   - "3.7"
+cache: pip
 install:
   - pip install -r restapi/requirements.txt
   - pip install coveralls
@@ -17,6 +18,6 @@ before_script:
   - flask db migrate -m "init db"
   - flask db upgrade
   - cd services/tests/system
-script: pytest -v
+script: coverage run -m unittest discover
 after_success:
   - coveralls
