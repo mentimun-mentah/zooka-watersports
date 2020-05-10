@@ -19,7 +19,6 @@ before_script:
   - flask db upgrade
   - cd services/tests/system
   - touch __init__.py
-  - cd ../
-script: coverage run --source=system -m unittest discover
+script: coverage run -m unittest discover
 after_success:
   - coveralls
