@@ -1,7 +1,5 @@
 services:
   - postgresql
-before_script:
-  - psql -c 'create database zooka-watersports;' -U postgres
 env:
   - ACCESS_TOKEN_EXPIRES=900 REFRESH_TOKEN_EXPIRES=2592000
 language: python
@@ -10,6 +8,7 @@ python:
 install:
   - "pip install -r restapi/requirements.txt"
 before_script:
+  - psql -c 'create database zooka-watersports;' -U postgres
   - cd restapi/
   - export FLASK_APP=app.py
   - flask db init
