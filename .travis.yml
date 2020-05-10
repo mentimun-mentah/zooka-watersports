@@ -9,5 +9,11 @@ python:
   - "3.7"
 install:
   - "pip install -r restapi/requirements.txt"
-before_script: cd restapi/services/tests/system
+before_script:
+  - cd restapi/
+  - export FLASK_APP=app.py
+  - flask db init
+  - flask db migrate -m "init db"
+  - flask db upgrade
+  - cd services/tests/system
 script: pytest -v
