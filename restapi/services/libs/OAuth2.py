@@ -1,6 +1,6 @@
 import os
-from flask_restful import Resource, request
 from flask import session, redirect
+from flask_restful import Resource, request
 from requests_oauthlib import OAuth2Session
 
 _GOOGLE_CLIENT_ID = os.getenv("GOOGLE_ID")

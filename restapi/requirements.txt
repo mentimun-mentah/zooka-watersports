@@ -4,6 +4,7 @@ Flask-Migrate
 flask-bcrypt
 flask-restful
 flask-jwt-extended
+flask-cors
 requests-oauthlib
 marshmallow
 psycopg2-binary

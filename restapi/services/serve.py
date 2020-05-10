@@ -5,6 +5,7 @@ from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
 from flask_restful import Api
 from flask_jwt_extended import JWTManager
+from flask_cors import CORS
 from marshmallow import ValidationError
 from services.config import Development
 from dotenv import load_dotenv
@@ -15,6 +16,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config.from_object(Development)
 
+CORS(app)
 db = SQLAlchemy(app)
 Migrate(app,db)
 bcrypt = Bcrypt(app)
