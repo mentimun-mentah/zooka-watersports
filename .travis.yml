@@ -18,6 +18,6 @@ before_script:
   - flask db migrate -m "init db"
   - flask db upgrade
   - cd services/tests/system
-script: coverage run -m unittest discover
+script: pytest -v
 after_success:
   - coveralls
