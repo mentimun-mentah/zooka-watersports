@@ -8,7 +8,7 @@ python:
 install:
   - "pip install -r restapi/requirements.txt"
 before_script:
-  - psql -c 'create database zooka-watersports;' -U postgres
+  - psql -c 'create database zooka_watersports;' -U postgres
   - cd restapi/
   - export FLASK_APP=app.py
   - flask db init
