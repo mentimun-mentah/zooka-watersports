@@ -1,3 +1,4 @@
+import os
 from flask_restful import Resource, request
 from flask_jwt_extended import (
     create_access_token,
@@ -18,8 +19,8 @@ from services.schemas.users.UserSchema import UserSchema
 from services.libs.MailSmtp import MailSmtpException
 from services.serve import conn_redis
 
-_ACCESS_EXPIRES = 15 * 60  # 15 minute
-_REFRESH_EXPIRES = 30 * 86400  # 30 days
+_ACCESS_EXPIRES = int(os.getenv("ACCESS_TOKEN_EXPIRES"))  # 15 minute
+_REFRESH_EXPIRES = int(os.getenv("REFRESH_TOKEN_EXPIRES"))  # 30 days
 
 class RegisterUser(Resource):
     def post(self):

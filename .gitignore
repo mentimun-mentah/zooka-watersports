@@ -46,6 +46,7 @@ yarn-error.log*
 __pycache__
 
 # ignore for backend
+*.jpg
 env
 migrations
 redis-*

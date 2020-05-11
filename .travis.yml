@@ -1,0 +1,24 @@
+services:
+  - postgresql
+  - redis-server
+env:
+  - ACCESS_TOKEN_EXPIRES=900 REFRESH_TOKEN_EXPIRES=2592000 SMTP_SERVER=smtp.mailtrap.io SMTP_PORT=465 SMTP_USE_SSL=False SMTP_EMAIL=0a1a83ec6a5ac4 SMTP_PASSWORD=aa80a2457da80a
+language: python
+python:
+  - "3.7"
+cache: pip
+install:
+  - pip install -r restapi/requirements.txt
+  - pip install coveralls
+before_script:
+  - psql -c 'create database zooka_watersports;' -U postgres
+  - cd restapi/
+  - export FLASK_APP=app.py
+  - flask db init
+  - flask db migrate -m "init db"
+  - flask db upgrade
+  - cd services/tests/system
+  - touch __init__.py
+script: coverage run --source=. -m unittest discover
+after_success:
+  - coveralls

@@ -9,7 +9,7 @@ class User(db.Model):
     fullname = db.Column(db.String(100),nullable=True)
     phone = db.Column(db.String(20),nullable=True)
     email = db.Column(db.String(100),unique=True,index=True,nullable=False)
-    password = db.Column(db.String(100),nullable=False)
+    password = db.Column(db.String(100),nullable=True)
     terms = db.Column(db.Boolean,default=False)
     role = db.Column(db.Integer,default=1)
     avatar = db.Column(db.String(100),default='default.png')
@@ -21,8 +21,11 @@ class User(db.Model):
     def __init__(self,**args):
         self.name = args['name']
         self.email = args['email']
-        self.password = bcrypt.generate_password_hash(args['password']).decode("utf-8")
         self.terms = args['terms']
+        if 'avatar' in args:
+            self.avatar = args['avatar']
+        if 'password' in args:
+            self.password = bcrypt.generate_password_hash(args['password']).decode("utf-8")
 
     def check_pass(self,password: str) -> bool:
         return bcrypt.check_password_hash(self.password,password)
