@@ -16,6 +16,7 @@ from services.models.ConfirmationModel import Confirmation
 from services.models.CountryModel import Country
 from services.models.UserModel import User
 from services.schemas.users.UpdatePasswordSchema import UpdatePasswordSchema
+from services.schemas.users.UpdateAccountSchema import UpdateAccountSchema
 from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema
 from services.schemas.users.RegisterSchema import RegisterSchema
 from services.schemas.users.UserSchema import UserSchema
@@ -192,3 +193,18 @@ class UpdatePassword(Resource):
         user.hash_password(args['password'])
         user.save_to_db()
         return {"message":"Success update your password"}, 200
+
+class UpdateAccount(Resource):
+    @jwt_required
+    def put(self):
+        _update_account_schema = UpdateAccountSchema()
+        data = request.get_json()
+        args = _update_account_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        country = Country.query.filter_by(id=args['country']).first_or_404("Country not found")
+
+        user.fullname = args['fullname']
+        user.country_id = country.id
+        user.phone = str(int(args['phone']))
+        user.save_to_db()
+        return {"message":"Success update your account"}, 200

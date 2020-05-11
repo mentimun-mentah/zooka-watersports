@@ -404,6 +404,45 @@ class UserTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success update your password",json.loads(res.data)['message'])
 
+    def test_32_validation_update_account(self):
+        # fullname, country, phone blank
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'','country':'','phone':''},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 100."],json.loads(res.data)['fullname'])
+            self.assertListEqual(["Not a valid integer."],json.loads(res.data)['country'])
+            self.assertListEqual(["Not a valid number."],json.loads(res.data)['phone'])
+        # invalid phone number
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08786233dwq231'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Not a valid number."],json.loads(res.data)['phone'])
+        # length phone number between 3 and 20
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'87862536363727263632'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 20."],json.loads(res.data)['phone'])
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 20."],json.loads(res.data)['phone'])
+        # country not found
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':900,'phone':'08787237464'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(404,res.status_code)
+            self.assertEqual("Country not found",json.loads(res.data)['message'])
+
+    def test_33_update_account(self):
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08787237464'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Success update your account",json.loads(res.data)['message'])
+
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
         user.delete_from_db()
