@@ -13,6 +13,7 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 from services.models.PasswordResetModel import PasswordReset
 from services.models.ConfirmationModel import Confirmation
+from services.models.CountryModel import Country
 from services.models.UserModel import User
 from services.schemas.users.UpdatePasswordSchema import UpdatePasswordSchema
 from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema

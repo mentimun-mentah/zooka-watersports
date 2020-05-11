@@ -15,6 +15,7 @@ class User(db.Model):
     avatar = db.Column(db.String(100),default='default.png')
     created_at = db.Column(db.DateTime,default=datetime.now)
     updated_at = db.Column(db.DateTime,default=datetime.now)
+    country_id = db.Column(db.Integer,db.ForeignKey('countries.id'),nullable=True)
 
     confirmation = db.relationship('Confirmation',backref='user',uselist=False,cascade='all,delete-orphan')
 
