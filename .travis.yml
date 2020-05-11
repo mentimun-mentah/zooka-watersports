@@ -17,7 +17,7 @@ before_script:
   - flask db init
   - flask db migrate -m "init db"
   - flask db upgrade
-  - psql -d zooka_watersports  -c "COPY countries (name,code) FROM 'countries.csv' delimiter ',' csv header;" -U postgres
+  - psql -d zooka_watersports -c "COPY countries (name,code) FROM '/home/travis/build/IndominusByte/zooka-watersports/restapi/countries.csv' delimiter ',' csv header;" -U postgres
   - cd services/tests/system
   - touch __init__.py
 script: coverage run --source=. -m unittest discover
