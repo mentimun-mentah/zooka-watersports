@@ -45,8 +45,12 @@ yarn-error.log*
 .pytest_cache
 __pycache__
 
-# ignore for backend
+# ignore image ext
 *.jpg
+*.jpeg
+*.png
+
+# ignore for backend
 env
 migrations
 redis-*
