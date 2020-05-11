@@ -13,12 +13,11 @@ install:
 before_script:
   - psql -c 'create database zooka_watersports;' -U postgres
   - cd restapi/
-  - chmod +x countries.csv
   - export FLASK_APP=app.py
   - flask db init
   - flask db migrate -m "init db"
   - flask db upgrade
-  - sudo psql -U postgres -d zooka_watersports -c "COPY countries (name,code) FROM '/home/travis/build/IndominusByte/zooka-watersports/restapi/countries.csv' delimiter ',' csv header;"
+  - sudo -u postgres psql -d zooka_watersports -c "COPY countries (name,code) FROM '/home/travis/build/IndominusByte/zooka-watersports/restapi/countries.csv' delimiter ',' csv header;"
   - cd services/tests/system
   - touch __init__.py
 script: coverage run --source=. -m unittest discover
