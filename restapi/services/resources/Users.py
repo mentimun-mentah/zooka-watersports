@@ -5,6 +5,7 @@ from flask_jwt_extended import (
     create_refresh_token,
     jwt_required,
     jwt_refresh_token_required,
+    fresh_jwt_required,
     get_jwt_identity,
     get_raw_jwt,
     get_jti
@@ -161,7 +162,7 @@ class ResetPassword(Resource):
         return {"message":"Successfully reset your password"}, 200
 
 class AddPassword(Resource):
-    @jwt_required
+    @fresh_jwt_required
     def post(self):
         _update_password_schema = UpdatePasswordSchema(exclude=("old_password",))
         data = request.get_json()
@@ -173,3 +174,20 @@ class AddPassword(Resource):
         user.hash_password(args['password'])
         user.save_to_db()
         return {"message":"Success add a password to your account"}, 201
+
+class UpdatePassword(Resource):
+    @fresh_jwt_required
+    def put(self):
+        _update_password_schema = UpdatePasswordSchema()
+        data = request.get_json()
+        args = _update_password_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        if not user.password:
+            return {"message":"Please add your password first"}, 400
+
+        if not user.check_pass(args['old_password']):
+            raise ValidationError({'old_password':['Password not match with our records']})
+
+        user.hash_password(args['password'])
+        user.save_to_db()
+        return {"message":"Success update your password"}, 200

@@ -361,6 +361,49 @@ class UserTest(BaseTest):
             self.assertEqual(201,res.status_code)
             self.assertEqual("Success add a password to your account",json.loads(res.data)['message'])
 
+    def test_29_validation_update_password(self):
+        # old , password, confirm blank
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'','password':'','confirm_password':''},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['old_password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['confirm_password'])
+        # password and confirm not same
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asdasd','confirm_password':'asdass'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Password must match with confirmation."],json.loads(res.data)['password'])
+        # password doesn't exists in database
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.password = None
+        user.save_to_db()
+
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asdasd','confirm_password':'asdasd'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("Please add your password first",json.loads(res.data)['message'])
+
+    def test_30_update_password_not_match_in_db(self):
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.hash_password('asdasd')
+        user.save_to_db()
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asuasu','password':'asdasd','confirm_password':'asdasd'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(['Password not match with our records'],json.loads(res.data)['old_password'])
+
+    def test_31_update_password_user(self):
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asuasu','confirm_password':'asuasu'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Success update your password",json.loads(res.data)['message'])
+
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
         user.delete_from_db()
