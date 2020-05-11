@@ -10,6 +10,19 @@ class UserTest(BaseTest):
     EMAIL_TEST = "asd@gmail.com"
     EMAIL_TEST_2 = "asd2@gmail.com"
 
+    def login(self,email: str) -> "UserTest":
+        user = User.query.filter_by(email=email).first()
+
+        with self.app() as client:
+            # get access token and refresh token
+            res = client.post('/login',json={"email": user.email,"password":"asdasd"})
+            self.assertEqual(200,res.status_code)
+            self.assertIn('access_token',json.loads(res.data).keys())
+            self.assertIn('refresh_token',json.loads(res.data).keys())
+            self.assertIn('name',json.loads(res.data).keys())
+            self.__class__.ACCESS_TOKEN = json.loads(res.data)['access_token']
+            self.__class__.REFRESH_TOKEN = json.loads(res.data)['refresh_token']
+
     def test_00_validation_register(self):
         # all field blank
         with self.app() as client:
@@ -311,6 +324,42 @@ class UserTest(BaseTest):
                 'confirm_password':'asdasd'})
             self.assertEqual(200,res.status_code)
             self.assertEqual("Successfully reset your password",json.loads(res.data)['message'])
+
+    def test_26_validation_add_password(self):
+        # login user
+        self.login(self.EMAIL_TEST)
+        # password and confirm blank
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'','confirm_password':''},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['confirm_password'])
+        # password and confirm not same
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Password must match with confirmation."],json.loads(res.data)['password'])
+
+    def test_27_add_password_already_have_password(self):
+        # check if user already have password
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("Your user already have a password",json.loads(res.data)['message'])
+
+    def test_28_add_password_to_user(self):
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.password = None
+        user.save_to_db()
+        # add new password
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(201,res.status_code)
+            self.assertEqual("Success add a password to your account",json.loads(res.data)['message'])
 
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()

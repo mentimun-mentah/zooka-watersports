@@ -13,6 +13,7 @@ from marshmallow import ValidationError
 from services.models.PasswordResetModel import PasswordReset
 from services.models.ConfirmationModel import Confirmation
 from services.models.UserModel import User
+from services.schemas.users.UpdatePasswordSchema import UpdatePasswordSchema
 from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema
 from services.schemas.users.RegisterSchema import RegisterSchema
 from services.schemas.users.UserSchema import UserSchema
@@ -158,3 +159,17 @@ class ResetPassword(Resource):
         user.save_to_db()
         password_reset.delete_from_db()
         return {"message":"Successfully reset your password"}, 200
+
+class AddPassword(Resource):
+    @jwt_required
+    def post(self):
+        _update_password_schema = UpdatePasswordSchema(exclude=("old_password",))
+        data = request.get_json()
+        args = _update_password_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        if user.password:
+            return {"message":"Your user already have a password"}, 400
+
+        user.hash_password(args['password'])
+        user.save_to_db()
+        return {"message":"Success add a password to your account"}, 201

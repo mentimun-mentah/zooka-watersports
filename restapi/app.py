@@ -17,5 +17,7 @@ api.add_resource(OAuth2.GoogleAuthorize,'/login/google/authorized')
 api.add_resource(OAuth2.FacebookLogin,'/login/facebook')
 api.add_resource(OAuth2.FacebookAuthorize,'/login/facebook/authorized')
 
+api.add_resource(Users.AddPassword,'/account/add-password')
+
 if __name__ == '__main__':
     app.run()
