@@ -7,8 +7,8 @@ from services.models.PasswordResetModel import PasswordReset
 class UserTest(BaseTest):
     ACCESS_TOKEN = None
     REFRESH_TOKEN = None
-    EMAIL_TEST = "asd@gmail.com"
-    EMAIL_TEST_2 = "asd2@gmail.com"
+    EMAIL_TEST = BaseTest.EMAIL_TEST
+    EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
     DIR_IMAGE = os.path.join(os.path.dirname(__file__),'../../static/test_image')
 
     def login(self,email: str) -> "UserTest":

@@ -1,5 +1,6 @@
 from services.serve import api, app
 from services.resources import Users
+from services.resources import Categories
 from services.libs import OAuth2
 
 api.add_resource(Users.RegisterUser,'/register')
@@ -21,6 +22,9 @@ api.add_resource(Users.AddPassword,'/account/add-password')
 api.add_resource(Users.UpdatePassword,'/account/update-password')
 api.add_resource(Users.UpdateAccount,'/account/update-account')
 api.add_resource(Users.UpdateAvatar,'/account/update-avatar')
+
+api.add_resource(Categories.CreateCategory,'/category/create')
+api.add_resource(Categories.UpdateDeleteCategory,'/category/crud/<int:id>')
 
 if __name__ == '__main__':
     app.run()

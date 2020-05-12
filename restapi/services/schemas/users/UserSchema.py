@@ -10,5 +10,5 @@ class UserSchema(Schema):
     password = fields.Str(load_only=True,required=True,validate=validate.Length(min=6,max=100))
     terms = fields.Boolean()
     avatar = fields.Str()
-    created_at = fields.DateTime()
-    updated_at = fields.DateTime()
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
