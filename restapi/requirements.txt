@@ -9,6 +9,7 @@ requests-oauthlib
 marshmallow
 psycopg2-binary
 python-dotenv
+Pillow
 pytest
 flake8
 redis

@@ -20,6 +20,7 @@ api.add_resource(OAuth2.FacebookAuthorize,'/login/facebook/authorized')
 api.add_resource(Users.AddPassword,'/account/add-password')
 api.add_resource(Users.UpdatePassword,'/account/update-password')
 api.add_resource(Users.UpdateAccount,'/account/update-account')
+api.add_resource(Users.UpdateAvatar,'/account/update-avatar')
 
 if __name__ == '__main__':
     app.run()

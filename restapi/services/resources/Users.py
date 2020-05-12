@@ -18,9 +18,11 @@ from services.models.UserModel import User
 from services.schemas.users.UpdatePasswordSchema import UpdatePasswordSchema
 from services.schemas.users.UpdateAccountSchema import UpdateAccountSchema
 from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema
+from services.schemas.users.UpdateAvatarSchema import UpdateAvatarSchema
 from services.schemas.users.RegisterSchema import RegisterSchema
 from services.schemas.users.UserSchema import UserSchema
 from services.libs.MailSmtp import MailSmtpException
+from services.libs.MagicImage import MagicImage
 from services.serve import conn_redis
 
 _ACCESS_EXPIRES = int(os.getenv("ACCESS_TOKEN_EXPIRES"))  # 15 minute
@@ -174,6 +176,7 @@ class AddPassword(Resource):
             return {"message":"Your user already have a password"}, 400
 
         user.hash_password(args['password'])
+        user.change_update_time()
         user.save_to_db()
         return {"message":"Success add a password to your account"}, 201
 
@@ -191,6 +194,7 @@ class UpdatePassword(Resource):
             raise ValidationError({'old_password':['Password not match with our records']})
 
         user.hash_password(args['password'])
+        user.change_update_time()
         user.save_to_db()
         return {"message":"Success update your password"}, 200
 
@@ -206,5 +210,25 @@ class UpdateAccount(Resource):
         user.fullname = args['fullname']
         user.country_id = country.id
         user.phone = str(int(args['phone']))
+        user.change_update_time()
         user.save_to_db()
         return {"message":"Success update your account"}, 200
+
+class UpdateAvatar(Resource):
+    @jwt_required
+    def put(self):
+        diravatar = os.path.join(os.path.dirname(__file__),'../static/avatars/')
+
+        _update_avatar_schema = UpdateAvatarSchema()
+        args = _update_avatar_schema.load(request.files)
+        user = User.query.get(get_jwt_identity())
+        if user.avatar != 'default.png':
+            os.remove(os.path.join(diravatar,user.avatar))
+
+        magic_image = MagicImage(args['avatar'])
+        magic_image.save_image()
+
+        user.avatar = magic_image.FILE_NAME
+        user.change_update_time()
+        user.save_to_db()
+        return {"message":"Image profile has updated."}, 200

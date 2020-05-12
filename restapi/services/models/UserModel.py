@@ -34,6 +34,9 @@ class User(db.Model):
     def hash_password(self,password: str) -> "User":
         self.password = bcrypt.generate_password_hash(password).decode("utf-8")
 
+    def change_update_time(self) -> "User":
+        self.updated_at = datetime.now()
+
     def save_to_db(self) -> None:
         db.session.add(self)
         db.session.commit()
