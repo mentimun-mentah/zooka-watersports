@@ -443,6 +443,19 @@ class UserTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success update your account",json.loads(res.data)['message'])
 
+    def test_34_validation_update_avatar_user(self):
+        # avatar not found
+        content_type = 'multipart/form-data'
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar':''},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(['Missing data for required field.'],json.loads(res.data)['avatar'])
+        # danger file extension
+        # not valid file extension
+        # file cannot grater than 4 Mb
+
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
         user.delete_from_db()

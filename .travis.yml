@@ -4,7 +4,6 @@ services:
 env:
   global:
     - TMPDIR=/tmp
-    - ACCESS_TOKEN_EXPIRES=900 REFRESH_TOKEN_EXPIRES=2592000 SMTP_SERVER=smtp.mailtrap.io SMTP_PORT=465 SMTP_USE_SSL=False SMTP_EMAIL=0a1a83ec6a5ac4 SMTP_PASSWORD=aa80a2457da80a
 language: python
 python:
   - "3.7"
