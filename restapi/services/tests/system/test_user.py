@@ -1,6 +1,6 @@
-import json
-from basetest import BaseTest
+import json, os, io
 from time import time
+from basetest import BaseTest
 from services.models.UserModel import User
 from services.models.PasswordResetModel import PasswordReset
 
@@ -9,6 +9,7 @@ class UserTest(BaseTest):
     REFRESH_TOKEN = None
     EMAIL_TEST = "asd@gmail.com"
     EMAIL_TEST_2 = "asd2@gmail.com"
+    DIR_IMAGE = os.path.join(os.path.dirname(__file__),'../../static/test_image')
 
     def login(self,email: str) -> "UserTest":
         user = User.query.filter_by(email=email).first()
@@ -453,11 +454,51 @@ class UserTest(BaseTest):
             self.assertEqual(400,res.status_code)
             self.assertListEqual(['Missing data for required field.'],json.loads(res.data)['avatar'])
         # danger file extension
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (io.BytesIO(b"print('sa')"), 'test.py')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Cannot identify image file"],json.loads(res.data)['avatar'])
+
+        with open(os.path.join(self.DIR_IMAGE,'test.gif'),'rb') as im:
+            img = io.BytesIO(im.read())
         # not valid file extension
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'test.gif')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image must be jpg|png|jpeg"],json.loads(res.data)['avatar'])
+
+        with open(os.path.join(self.DIR_IMAGE,'size.png'),'rb') as im:
+            img = io.BytesIO(im.read())
+
         # file cannot grater than 4 Mb
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'size.png')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image cannot grater than 4 Mb"],json.loads(res.data)['avatar'])
+
+    def test_35_update_avatar_user(self):
+        content_type = 'multipart/form-data'
+
+        with open(os.path.join(self.DIR_IMAGE,'avatar.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
+
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'avatar.jpg')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Image profile has updated.",json.loads(res.data)['message'])
 
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        # delete avatar user
+        os.remove(os.path.join(self.DIR_IMAGE,'../avatars/',user.avatar))
         user.delete_from_db()
         user = User.query.filter_by(email=self.EMAIL_TEST_2).first()
         user.delete_from_db()
