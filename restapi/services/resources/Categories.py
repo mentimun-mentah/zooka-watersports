@@ -53,4 +53,5 @@ class AllCategory(Resource):
     @jwt_required
     @admin_required
     def get(self):
-        pass
+        categories = Category.query.all()
+        return _category_schema.dump(categories,many=True), 200

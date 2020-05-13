@@ -4,10 +4,12 @@ from PIL import Image, ImageOps
 
 class MagicImage:
     FILE_NAME = None
-    _DIR_AVATAR = os.path.join(os.path.dirname(__file__),'../static/avatars/')
+    _BASE_DIR = os.path.join(os.path.dirname(__file__),'../static/')
 
-    def __init__(self,value: TextIO):
-        self.value = value
+    def __init__(self,file: TextIO, resize: int, path_upload: str):
+        self.file = file
+        self.resize = resize
+        self.path_upload = path_upload
 
     def _crop_center(self,pil_img: TextIO, crop_width: int, crop_height: int) -> TextIO:
         img_width, img_height = pil_img.size
@@ -33,16 +35,16 @@ class MagicImage:
 
     def save_image(self) -> 'MagicImage':
         # save image
-        with Image.open(self.value) as im:
+        with Image.open(self.file) as im:
             # set filename
             ext = im.format.lower()
             filename = uuid.uuid4().hex + '.' + ext
             # crop to center and resize img by 260 x 260
-            img = self._crop_max_square(im).resize((260, 260), Image.LANCZOS)
+            img = self._crop_max_square(im).resize((self.resize, self.resize), Image.LANCZOS)
             # remove exif tag
             img = self._remove_exif_tag(img)
             # flip image to right path
             img = ImageOps.exif_transpose(img)
-            img.save(os.path.join(self._DIR_AVATAR,filename))
+            img.save(os.path.join(self._BASE_DIR,self.path_upload,filename))
 
         self.FILE_NAME = filename

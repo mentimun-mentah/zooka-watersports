@@ -144,7 +144,22 @@ class CategoryTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success update category.",json.loads(res.data)['message'])
 
-    def test_07_validation_delete_category(self):
+    def test_07_get_all_category(self):
+        self.login(self.EMAIL_TEST_2)
+        # check user is admin
+        with self.app() as client:
+            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(403,res.status_code)
+            self.assertEqual("Forbidden access this endpoint!",json.loads(res.data)['msg'])
+
+        self.login(self.EMAIL_TEST)
+        # check list is not empty
+        with self.app() as client:
+            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertNotEqual([],json.loads(res.data))
+
+    def test_08_validation_delete_category(self):
         self.login(self.EMAIL_TEST_2)
         # check user is admin
         with self.app() as client:
@@ -159,7 +174,7 @@ class CategoryTest(BaseTest):
             self.assertEqual(404,res.status_code)
             self.assertEqual("Category not found",json.loads(res.data)['message'])
 
-    def test_08_delete_category(self):
+    def test_09_delete_category(self):
         category = Category.query.filter_by(name=self.NAME_2).first()
 
         with self.app() as client:

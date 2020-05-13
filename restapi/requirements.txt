@@ -9,6 +9,7 @@ requests-oauthlib
 marshmallow
 psycopg2-binary
 python-dotenv
+python-slugify
 Pillow
 pytest
 flake8
