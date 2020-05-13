@@ -5,6 +5,7 @@ from flask_jwt_extended import (
     create_refresh_token,
     jwt_required,
     jwt_refresh_token_required,
+    fresh_jwt_required,
     get_jwt_identity,
     get_raw_jwt,
     get_jti
@@ -12,11 +13,16 @@ from flask_jwt_extended import (
 from marshmallow import ValidationError
 from services.models.PasswordResetModel import PasswordReset
 from services.models.ConfirmationModel import Confirmation
+from services.models.CountryModel import Country
 from services.models.UserModel import User
+from services.schemas.users.UpdatePasswordSchema import UpdatePasswordSchema
+from services.schemas.users.UpdateAccountSchema import UpdateAccountSchema
 from services.schemas.users.ResetPasswordSchema import ResetPasswordSchema
+from services.schemas.users.UpdateAvatarSchema import UpdateAvatarSchema
 from services.schemas.users.RegisterSchema import RegisterSchema
 from services.schemas.users.UserSchema import UserSchema
 from services.libs.MailSmtp import MailSmtpException
+from services.libs.MagicImage import MagicImage
 from services.serve import conn_redis
 
 _ACCESS_EXPIRES = int(os.getenv("ACCESS_TOKEN_EXPIRES"))  # 15 minute
@@ -158,3 +164,71 @@ class ResetPassword(Resource):
         user.save_to_db()
         password_reset.delete_from_db()
         return {"message":"Successfully reset your password"}, 200
+
+class AddPassword(Resource):
+    @fresh_jwt_required
+    def post(self):
+        _update_password_schema = UpdatePasswordSchema(exclude=("old_password",))
+        data = request.get_json()
+        args = _update_password_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        if user.password:
+            return {"message":"Your user already have a password"}, 400
+
+        user.hash_password(args['password'])
+        user.change_update_time()
+        user.save_to_db()
+        return {"message":"Success add a password to your account"}, 201
+
+class UpdatePassword(Resource):
+    @fresh_jwt_required
+    def put(self):
+        _update_password_schema = UpdatePasswordSchema()
+        data = request.get_json()
+        args = _update_password_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        if not user.password:
+            return {"message":"Please add your password first"}, 400
+
+        if not user.check_pass(args['old_password']):
+            raise ValidationError({'old_password':['Password not match with our records']})
+
+        user.hash_password(args['password'])
+        user.change_update_time()
+        user.save_to_db()
+        return {"message":"Success update your password"}, 200
+
+class UpdateAccount(Resource):
+    @jwt_required
+    def put(self):
+        _update_account_schema = UpdateAccountSchema()
+        data = request.get_json()
+        args = _update_account_schema.load(data)
+        user = User.query.get(get_jwt_identity())
+        country = Country.query.filter_by(id=args['country']).first_or_404("Country not found")
+
+        user.fullname = args['fullname']
+        user.country_id = country.id
+        user.phone = str(int(args['phone']))
+        user.change_update_time()
+        user.save_to_db()
+        return {"message":"Success update your account"}, 200
+
+class UpdateAvatar(Resource):
+    @jwt_required
+    def put(self):
+        diravatar = os.path.join(os.path.dirname(__file__),'../static/avatars/')
+
+        _update_avatar_schema = UpdateAvatarSchema()
+        args = _update_avatar_schema.load(request.files)
+        user = User.query.get(get_jwt_identity())
+        if user.avatar != 'default.png':
+            os.remove(os.path.join(diravatar,user.avatar))
+
+        magic_image = MagicImage(args['avatar'])
+        magic_image.save_image()
+
+        user.avatar = magic_image.FILE_NAME
+        user.change_update_time()
+        user.save_to_db()
+        return {"message":"Image profile has updated."}, 200

@@ -1,14 +1,28 @@
-import json
-from basetest import BaseTest
+import json, os, io
 from time import time
+from basetest import BaseTest
 from services.models.UserModel import User
 from services.models.PasswordResetModel import PasswordReset
 
 class UserTest(BaseTest):
     ACCESS_TOKEN = None
     REFRESH_TOKEN = None
-    EMAIL_TEST = "asd@gmail.com"
-    EMAIL_TEST_2 = "asd2@gmail.com"
+    EMAIL_TEST = BaseTest.EMAIL_TEST
+    EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
+    DIR_IMAGE = os.path.join(os.path.dirname(__file__),'../../static/test_image')
+
+    def login(self,email: str) -> "UserTest":
+        user = User.query.filter_by(email=email).first()
+
+        with self.app() as client:
+            # get access token and refresh token
+            res = client.post('/login',json={"email": user.email,"password":"asdasd"})
+            self.assertEqual(200,res.status_code)
+            self.assertIn('access_token',json.loads(res.data).keys())
+            self.assertIn('refresh_token',json.loads(res.data).keys())
+            self.assertIn('name',json.loads(res.data).keys())
+            self.__class__.ACCESS_TOKEN = json.loads(res.data)['access_token']
+            self.__class__.REFRESH_TOKEN = json.loads(res.data)['refresh_token']
 
     def test_00_validation_register(self):
         # all field blank
@@ -312,8 +326,179 @@ class UserTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertEqual("Successfully reset your password",json.loads(res.data)['message'])
 
+    def test_26_validation_add_password(self):
+        # login user
+        self.login(self.EMAIL_TEST)
+        # password and confirm blank
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'','confirm_password':''},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['confirm_password'])
+        # password and confirm not same
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Password must match with confirmation."],json.loads(res.data)['password'])
+
+    def test_27_add_password_already_have_password(self):
+        # check if user already have password
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("Your user already have a password",json.loads(res.data)['message'])
+
+    def test_28_add_password_to_user(self):
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.password = None
+        user.save_to_db()
+        # add new password
+        with self.app() as client:
+            res = client.post('/account/add-password',json={'password':'asdasd','confirm_password':'asdasd'},
+                headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(201,res.status_code)
+            self.assertEqual("Success add a password to your account",json.loads(res.data)['message'])
+
+    def test_29_validation_update_password(self):
+        # old , password, confirm blank
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'','password':'','confirm_password':''},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['old_password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['password'])
+            self.assertListEqual(["Length must be between 6 and 100."],json.loads(res.data)['confirm_password'])
+        # password and confirm not same
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asdasd','confirm_password':'asdass'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Password must match with confirmation."],json.loads(res.data)['password'])
+        # password doesn't exists in database
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.password = None
+        user.save_to_db()
+
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asdasd','confirm_password':'asdasd'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("Please add your password first",json.loads(res.data)['message'])
+
+    def test_30_update_password_not_match_in_db(self):
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.hash_password('asdasd')
+        user.save_to_db()
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asuasu','password':'asdasd','confirm_password':'asdasd'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(['Password not match with our records'],json.loads(res.data)['old_password'])
+
+    def test_31_update_password_user(self):
+        with self.app() as client:
+            res = client.put('/account/update-password',json={'old_password':'asdasd','password':'asuasu','confirm_password':'asuasu'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Success update your password",json.loads(res.data)['message'])
+
+    def test_32_validation_update_account(self):
+        # fullname, country, phone blank
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'','country':'','phone':''},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 100."],json.loads(res.data)['fullname'])
+            self.assertListEqual(["Not a valid integer."],json.loads(res.data)['country'])
+            self.assertListEqual(["Not a valid number."],json.loads(res.data)['phone'])
+        # invalid phone number
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08786233dwq231'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Not a valid number."],json.loads(res.data)['phone'])
+        # length phone number between 3 and 20
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'87862536363727263632'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 20."],json.loads(res.data)['phone'])
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Length must be between 3 and 20."],json.loads(res.data)['phone'])
+        # country not found
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':900,'phone':'08787237464'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(404,res.status_code)
+            self.assertEqual("Country not found",json.loads(res.data)['message'])
+
+    def test_33_update_account(self):
+        with self.app() as client:
+            res = client.put('/account/update-account',json={'fullname':'asdasd','country':2,'phone':'08787237464'},
+                    headers={'Authorization': f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Success update your account",json.loads(res.data)['message'])
+
+    def test_34_validation_update_avatar_user(self):
+        # avatar not found
+        content_type = 'multipart/form-data'
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar':''},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(['Missing data for required field.'],json.loads(res.data)['avatar'])
+        # danger file extension
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (io.BytesIO(b"print('sa')"), 'test.py')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Cannot identify image file"],json.loads(res.data)['avatar'])
+
+        with open(os.path.join(self.DIR_IMAGE,'test.gif'),'rb') as im:
+            img = io.BytesIO(im.read())
+        # not valid file extension
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'test.gif')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image must be jpg|png|jpeg"],json.loads(res.data)['avatar'])
+
+        with open(os.path.join(self.DIR_IMAGE,'size.png'),'rb') as im:
+            img = io.BytesIO(im.read())
+
+        # file cannot grater than 4 Mb
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'size.png')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image cannot grater than 4 Mb"],json.loads(res.data)['avatar'])
+
+    def test_35_update_avatar_user(self):
+        content_type = 'multipart/form-data'
+
+        with open(os.path.join(self.DIR_IMAGE,'avatar.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
+
+        with self.app() as client:
+            res = client.put('/account/update-avatar',content_type=content_type,
+                data={'avatar': (img, 'avatar.jpg')},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(200,res.status_code)
+            self.assertEqual("Image profile has updated.",json.loads(res.data)['message'])
+
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        # delete avatar user
+        os.remove(os.path.join(self.DIR_IMAGE,'../avatars/',user.avatar))
         user.delete_from_db()
         user = User.query.filter_by(email=self.EMAIL_TEST_2).first()
         user.delete_from_db()

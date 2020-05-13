@@ -15,6 +15,7 @@ class User(db.Model):
     avatar = db.Column(db.String(100),default='default.png')
     created_at = db.Column(db.DateTime,default=datetime.now)
     updated_at = db.Column(db.DateTime,default=datetime.now)
+    country_id = db.Column(db.Integer,db.ForeignKey('countries.id'),nullable=True)
 
     confirmation = db.relationship('Confirmation',backref='user',uselist=False,cascade='all,delete-orphan')
 
@@ -32,6 +33,9 @@ class User(db.Model):
 
     def hash_password(self,password: str) -> "User":
         self.password = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    def change_update_time(self) -> "User":
+        self.updated_at = datetime.now()
 
     def save_to_db(self) -> None:
         db.session.add(self)
