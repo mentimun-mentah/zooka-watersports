@@ -457,13 +457,44 @@ class ActivityTest(BaseTest):
             self.assertIn('updated_at',json.loads(res.data).keys())
             self.assertIn('category_id',json.loads(res.data).keys())
 
-    def test_13_get_all_activity(self):
+    def test_13_get_activity_by_slug(self):
+        # note this endpoint is public data
+        # activity not found
+        with self.app() as client:
+            res = client.get('/activity/dwq-dwq-fffqs-wdf')
+            self.assertEqual(404,res.status_code)
+            self.assertEqual("Activity not found",json.loads(res.data)['message'])
+
+        activity = Activity.query.filter_by(name=self.NAME).first()
+        with self.app() as client:
+            res = client.get('/activity/{}'.format(activity.slug))
+            self.assertEqual(200,res.status_code)
+            self.assertIn('id',json.loads(res.data).keys())
+            self.assertIn('name',json.loads(res.data).keys())
+            self.assertIn('slug',json.loads(res.data).keys())
+            self.assertIn('price',json.loads(res.data).keys())
+            self.assertIn('discount',json.loads(res.data).keys())
+            self.assertIn('min_person',json.loads(res.data).keys())
+            self.assertIn('image',json.loads(res.data).keys())
+            self.assertIn('image2',json.loads(res.data).keys())
+            self.assertIn('image3',json.loads(res.data).keys())
+            self.assertIn('image4',json.loads(res.data).keys())
+            self.assertIn('description',json.loads(res.data).keys())
+            self.assertIn('duration',json.loads(res.data).keys())
+            self.assertIn('include',json.loads(res.data).keys())
+            self.assertIn('pickup',json.loads(res.data).keys())
+            self.assertIn('information',json.loads(res.data).keys())
+            self.assertIn('created_at',json.loads(res.data).keys())
+            self.assertIn('updated_at',json.loads(res.data).keys())
+            self.assertIn('category_id',json.loads(res.data).keys())
+
+    def test_14_get_all_activity(self):
         with self.app() as client:
             res = client.get('/activities')
             self.assertEqual(200,res.status_code)
-            self.assertNotEqual([],json.loads(res.data))
+            self.assertNotEqual({},json.loads(res.data))
 
-    def test_14_delete_activity_one(self):
+    def test_15_delete_activity_one(self):
         self.login(self.EMAIL_TEST_2)
 
         activity = Activity.query.filter_by(name=self.NAME).first()
@@ -485,7 +516,7 @@ class ActivityTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success delete activity.",json.loads(res.data)['message'])
 
-    def test_15_delete_activity_two(self):
+    def test_16_delete_activity_two(self):
         # check activity not found
         with self.app() as client:
             res = client.delete('/activity/crud/99999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})

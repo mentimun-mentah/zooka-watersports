@@ -1,3 +1,4 @@
+import re
 from flask_restful import Resource, request
 from flask_jwt_extended import jwt_required
 from services.models.ActivityModel import Activity
@@ -82,5 +83,24 @@ class UpdateDeleteActivity(Resource):
 
 class AllActivities(Resource):
     def get(self):
-        activities = Activity.query.all()
-        return _activity_schema.dump(activities,many=True), 200
+        per_page = request.args.get('per_page',default=None,type=int) or 8
+        page = request.args.get('page',default=None,type=int) or 1
+        q = re.escape(request.args.get('q',default=None,type=str) or '')
+        if q:
+            activities = Activity.query.filter(Activity.name.like('%' + q + '%')).paginate(page,per_page,error_out=False)
+        else:
+            activities = Activity.query.paginate(page,per_page,error_out=False)
+
+        result = dict(
+            data = _activity_schema.dump(activities.items,many=True),
+            next_num = activities.next_num,
+            prev_num = activities.prev_num,
+            page = activities.page,
+            iter_pages = [x for x in activities.iter_pages()]
+        )
+        return result, 200
+
+class GetActivitySlug(Resource):
+    def get(self,slug: str):
+        activity = Activity.query.filter_by(slug=slug).first_or_404('Activity not found')
+        return _activity_schema.dump(activity), 200
