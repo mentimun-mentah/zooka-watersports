@@ -26,7 +26,9 @@ api.add_resource(Categories.AllCategory,'/categories')
 api.add_resource(Categories.CreateCategory,'/category/create')
 api.add_resource(Categories.UpdateDeleteCategory,'/category/crud/<int:id>')
 
+api.add_resource(Activities.AllActivities,'/activities')
 api.add_resource(Activities.CreateActivity,'/activity/create')
+api.add_resource(Activities.UpdateDeleteActivity,'/activity/crud/<int:id>')
 
 if __name__ == '__main__':
     app.run()

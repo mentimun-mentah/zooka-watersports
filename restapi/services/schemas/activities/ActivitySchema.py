@@ -1,25 +1,27 @@
 from marshmallow import Schema, fields, validate, validates, ValidationError
 from services.models.CategoryModel import Category
-from services.models.ActivityModel import Activity
 
-class AddActivitySchema(Schema):
+class ActivitySchema(Schema):
+    id = fields.Int(dump_only=True)
     name = fields.Str(required=True,validate=validate.Length(min=3,max=100))
+    slug = fields.Str(dump_only=True)
     description = fields.Str(required=True,validate=validate.Length(min=3))
     duration = fields.Str(required=True,validate=validate.Length(min=3,max=100))
-    category = fields.Int(required=True)
     discount = fields.Int()
     price = fields.Int(required=True)
     min_person = fields.Int(required=True)
     include = fields.Str(required=True,validate=validate.Length(min=3))
     pickup = fields.Str(required=True,validate=validate.Length(min=3,max=100))
     information = fields.Str(required=True,validate=validate.Length(min=3))
+    image = fields.Str(dump_only=True)
+    image2 = fields.Str(dump_only=True)
+    image3 = fields.Str(dump_only=True)
+    image4 = fields.Str(dump_only=True)
+    created_at = fields.DateTime(dump_only=True)
+    updated_at = fields.DateTime(dump_only=True)
+    category_id = fields.Int(required=True)
 
-    @validates('category')
-    def validate_category(self,value):
+    @validates('category_id')
+    def validate_category_id(self,value):
         if not Category.query.get(value):
             raise ValidationError('Category not found')
-
-    @validates('name')
-    def validate_name(self,value):
-        if Activity.query.filter_by(name=value).first():
-            raise ValidationError('The name has already been taken.')

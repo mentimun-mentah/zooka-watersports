@@ -32,7 +32,7 @@ class ImageField(fields.Field):
         # return real image
         return value
 
-class ImageActivitySchema(Schema):
+class AddImageActivitySchema(Schema):
     image = ImageField(required=True)
     image2 = ImageField()
     image3 = ImageField()

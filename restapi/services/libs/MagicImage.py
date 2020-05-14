@@ -1,12 +1,12 @@
 import os, uuid
-from typing import TextIO
+from typing import TextIO, Union, Dict
 from PIL import Image, ImageOps
 
 class MagicImage:
     FILE_NAME = None
     _BASE_DIR = os.path.join(os.path.dirname(__file__),'../static/')
 
-    def __init__(self,file: TextIO, resize: int, path_upload: str):
+    def __init__(self,file: Union[TextIO,Dict[str,TextIO]], resize: int, path_upload: str):
         self.file = file
         self.resize = resize
         self.path_upload = path_upload
@@ -33,9 +33,9 @@ class MagicImage:
         pil_img.info["exif"] = new_exif
         return pil_img
 
-    def save_image(self) -> 'MagicImage':
+    def _save_file(self,file: TextIO) -> str:
         # save image
-        with Image.open(self.file) as im:
+        with Image.open(file) as im:
             # set filename
             ext = im.format.lower()
             filename = uuid.uuid4().hex + '.' + ext
@@ -47,4 +47,23 @@ class MagicImage:
             img = ImageOps.exif_transpose(img)
             img.save(os.path.join(self._BASE_DIR,self.path_upload,filename))
 
-        self.FILE_NAME = filename
+        return filename
+
+    def save_image(self) -> 'MagicImage':
+        if isinstance(self.file,dict):
+            # temp storage to save filename in dict
+            files_name = dict()
+            for index,file in self.file.items():
+                filename = self._save_file(file)
+                files_name[index] = filename
+
+            self.FILE_NAME = files_name
+        else:
+            filename = self._save_file(self.file)
+            self.FILE_NAME = filename
+
+    @classmethod
+    def delete_image(cls,file: str,path_delete: str) -> None:
+        path = os.path.join(cls._BASE_DIR,path_delete,file or ' ')
+        if os.path.exists(path):
+            os.remove(path)

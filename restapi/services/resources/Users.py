@@ -217,13 +217,11 @@ class UpdateAccount(Resource):
 class UpdateAvatar(Resource):
     @jwt_required
     def put(self):
-        diravatar = os.path.join(os.path.dirname(__file__),'../static/avatars/')
-
         _update_avatar_schema = UpdateAvatarSchema()
         args = _update_avatar_schema.load(request.files)
         user = User.query.get(get_jwt_identity())
         if user.avatar != 'default.png':
-            os.remove(os.path.join(diravatar,user.avatar))
+            MagicImage.delete_image(file=user.avatar,path_delete='avatars/')
 
         magic_image = MagicImage(file=args['avatar'],resize=260,path_upload='avatars/')
         magic_image.save_image()

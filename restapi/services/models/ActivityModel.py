@@ -36,10 +36,33 @@ class Activity(db.Model):
         self.include = data['include']
         self.pickup = data['pickup']
         self.information = data['information']
-        self.category_id = data['category']
+        self.category_id = data['category_id']
 
         if 'discount' in data:
             self.discount = data['discount']
+        if 'image2' in data:
+            self.image2 = data['image2']
+        if 'image3' in data:
+            self.image3 = data['image3']
+        if 'image4' in data:
+            self.image4 = data['image4']
+
+    def update_data_in_db(self,**data) -> "Activity":
+        self.name = data['name']
+        self.slug = slugify(self.name)
+        self.price = data['price']
+        self.min_person = data['min_person']
+        self.description = data['description']
+        self.duration = data['duration']
+        self.include = data['include']
+        self.pickup = data['pickup']
+        self.information = data['information']
+        self.category_id = data['category_id']
+
+        if 'discount' in data:
+            self.discount = data['discount']
+        if 'image' in data:
+            self.image = data['image']
         if 'image2' in data:
             self.image2 = data['image2']
         if 'image3' in data:

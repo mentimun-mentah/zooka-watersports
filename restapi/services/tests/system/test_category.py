@@ -93,7 +93,7 @@ class CategoryTest(BaseTest):
             res = client.get('/category/crud/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(404,res.status_code)
             self.assertEqual("Category not found",json.loads(res.data)['message'])
-        # return category
+        # get specific category
         category = Category.query.filter_by(name=self.NAME).first()
         with self.app() as client:
             res = client.get('/category/crud/{}'.format(category.id),
