@@ -9,6 +9,8 @@ class Category(db.Model):
     created_at = db.Column(db.DateTime,default=datetime.now)
     updated_at = db.Column(db.DateTime,default=datetime.now)
 
+    activities = db.relationship('Activity',backref='category',cascade='all,delete-orphan')
+
     def change_update_time(self) -> "Category":
         self.updated_at = datetime.now()
 

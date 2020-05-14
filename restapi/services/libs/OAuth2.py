@@ -25,8 +25,6 @@ _FACEBOOK_TOKEN_URL = "https://graph.facebook.com/v3.3/oauth/access_token"
 _FACEBOOK_REDIRECT_URI = os.getenv("FB_URL")
 _FACEBOOK_SCOPE = ["email"]
 
-_dir_avatars = os.path.join(os.path.dirname(__file__),'../static/avatars/')
-
 class CreateToken:
     _ACCESS_EXPIRES = int(os.getenv("ACCESS_TOKEN_EXPIRES"))  # 15 minute
     _REFRESH_EXPIRES = int(os.getenv("REFRESH_TOKEN_EXPIRES"))  # 30 days
@@ -46,12 +44,13 @@ class CreateToken:
         return {"access_token": access_token, "refresh_token": refresh_token}
 
 class SaveUser:
+    _dir_avatars = os.path.join(os.path.dirname(__file__),'../static/avatars/')
 
     @classmethod
     def save_user_to_db(cls,**args) -> int:
         resp = requests.get(args['picture'])
         filename = uuid.uuid4().hex + '.jpg'
-        file = os.path.join(_dir_avatars,filename)
+        file = os.path.join(cls._dir_avatars,filename)
         with open(file,"wb") as f:
             f.write(resp.content)
         user = User(name=args['name'],email=args['email'],terms=True,avatar=filename)

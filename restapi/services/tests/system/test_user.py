@@ -485,12 +485,12 @@ class UserTest(BaseTest):
     def test_35_update_avatar_user(self):
         content_type = 'multipart/form-data'
 
-        with open(os.path.join(self.DIR_IMAGE,'avatar.jpg'),'rb') as im:
+        with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
             img = io.BytesIO(im.read())
 
         with self.app() as client:
             res = client.put('/account/update-avatar',content_type=content_type,
-                data={'avatar': (img, 'avatar.jpg')},
+                data={'avatar': (img, 'image.jpg')},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)
             self.assertEqual("Image profile has updated.",json.loads(res.data)['message'])

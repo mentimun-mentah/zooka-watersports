@@ -1,7 +1,6 @@
 from services.serve import api, app
-from services.resources import Users
-from services.resources import Categories
 from services.libs import OAuth2
+from services.resources import Users, Categories, Activities
 
 api.add_resource(Users.RegisterUser,'/register')
 api.add_resource(Users.ConfirmEmail,'/user-confirm/<token>',endpoint='user.confirm')
@@ -23,8 +22,14 @@ api.add_resource(Users.UpdatePassword,'/account/update-password')
 api.add_resource(Users.UpdateAccount,'/account/update-account')
 api.add_resource(Users.UpdateAvatar,'/account/update-avatar')
 
+api.add_resource(Categories.AllCategory,'/categories')
 api.add_resource(Categories.CreateCategory,'/category/create')
 api.add_resource(Categories.UpdateDeleteCategory,'/category/crud/<int:id>')
+
+api.add_resource(Activities.AllActivities,'/activities')
+api.add_resource(Activities.GetActivitySlug,'/activity/<slug>')
+api.add_resource(Activities.CreateActivity,'/activity/create')
+api.add_resource(Activities.UpdateDeleteActivity,'/activity/crud/<int:id>')
 
 if __name__ == '__main__':
     app.run()
