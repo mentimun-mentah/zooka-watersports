@@ -7,6 +7,7 @@ from services.schemas.activities.AddImageActivitySchema import AddImageActivityS
 from services.schemas.activities.ActivitySchema import ActivitySchema
 from services.middleware.Admin import admin_required
 from services.libs.MagicImage import MagicImage
+from services.libs.Visitable import Visits
 from marshmallow import ValidationError
 
 _activity_schema = ActivitySchema()
@@ -103,4 +104,35 @@ class AllActivities(Resource):
 class GetActivitySlug(Resource):
     def get(self,slug: str):
         activity = Activity.query.filter_by(slug=slug).first_or_404('Activity not found')
+        Visits.set_visit(ip=request.remote_addr,visitable_id=activity.id,visitable_type='view_activity')
         return _activity_schema.dump(activity), 200
+
+class GetActivitiesMostView(Resource):
+    def get(self):
+        visits = Visits.visit_popular_by(visit_type='view_activity',limit=5)
+        raw_activity = [Activity.query.get(index) for index,value in visits]
+        return _activity_schema.dump(raw_activity,many=True), 200
+
+class SearchActivitiesByName(Resource):
+    def get(self):
+        _activity_name_schema = ActivitySchema(only=("name",))
+        q = re.escape(request.args.get('q',default=None,type=str) or '')
+        if q:
+            activities = Activity.query.filter(Activity.name.like('%' + q + '%')).limit(5).all()
+        else:
+            activities = []
+
+        return _activity_name_schema.dump(activities,many=True), 200
+
+class ClickActivityBySearchName(Resource):
+    def post(self,id: int):
+        activity = Activity.query.filter_by(id=id).first_or_404('Activity not found')
+        Visits.set_visit(ip=request.remote_addr,visitable_id=activity.id,visitable_type='search_activity')
+        return {"message":"Activity by name clicked."}, 200
+
+class GetActivitiesPopularSearch(Resource):
+    def get(self):
+        _activity_name_schema = ActivitySchema(only=("name",))
+        visits = Visits.visit_popular_by(visit_type='search_activity',limit=5)
+        raw_activity = [Activity.query.get(index) for index,value in visits]
+        return _activity_name_schema.dump(raw_activity,many=True), 200

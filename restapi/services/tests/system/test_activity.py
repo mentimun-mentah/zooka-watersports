@@ -3,6 +3,7 @@ from basetest import BaseTest
 from services.models.UserModel import User
 from services.models.ActivityModel import Activity
 from services.models.CategoryModel import Category
+from services.models.VisitModel import Visit
 
 class ActivityTest(BaseTest):
     ACCESS_TOKEN = None
@@ -494,7 +495,38 @@ class ActivityTest(BaseTest):
             self.assertEqual(200,res.status_code)
             self.assertNotEqual({},json.loads(res.data))
 
-    def test_15_delete_activity_one(self):
+    def test_15_get_activities_most_viewed(self):
+        with self.app() as client:
+            res = client.get('/activities/most-viewed')
+            self.assertEqual(200,res.status_code)
+            self.assertNotEqual([],json.loads(res.data))
+
+    def test_16_search_activities_by_name(self):
+        with self.app() as client:
+            res = client.get('/activities/search-by-name?q=e')
+            self.assertEqual(200,res.status_code)
+            self.assertNotEqual([],json.loads(res.data))
+
+    def test_17_activity_by_name_clicked(self):
+        # activity not found
+        with self.app() as client:
+            res = client.post('/activity/search-by-name/click/99999')
+            self.assertEqual(404,res.status_code)
+            self.assertEqual('Activity not found',json.loads(res.data)['message'])
+        # activity by name clicked
+        activity = Activity.query.filter_by(name=self.NAME).first()
+        with self.app() as client:
+            res = client.post('/activity/search-by-name/click/{}'.format(activity.id))
+            self.assertEqual(200,res.status_code)
+            self.assertEqual('Activity by name clicked.',json.loads(res.data)['message'])
+
+    def test_18_get_activities_popular_search(self):
+        with self.app() as client:
+            res = client.get('/activities/popular-search')
+            self.assertEqual(200,res.status_code)
+            self.assertNotEqual([],json.loads(res.data))
+
+    def test_19_delete_activity_and_visit_one(self):
         self.login(self.EMAIL_TEST_2)
 
         activity = Activity.query.filter_by(name=self.NAME).first()
@@ -511,12 +543,16 @@ class ActivityTest(BaseTest):
             self.assertEqual(404,res.status_code)
             self.assertEqual("Activity not found",json.loads(res.data)['message'])
 
+        # delete visitable_id
+        visits = Visit.query.filter_by(visitable_id=activity.id).all()
+        [visit.delete_from_db() for visit in visits]
+        # delete activity
         with self.app() as client:
             res = client.delete('/activity/crud/{}'.format(activity.id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success delete activity.",json.loads(res.data)['message'])
 
-    def test_16_delete_activity_two(self):
+    def test_20_delete_activity_two(self):
         # check activity not found
         with self.app() as client:
             res = client.delete('/activity/crud/99999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
