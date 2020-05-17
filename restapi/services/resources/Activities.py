@@ -1,7 +1,8 @@
 import re
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, jwt_optional, get_jwt_identity
 from services.models.ActivityModel import Activity
+from services.models.WishlistModel import Wishlist
 from services.schemas.activities.UpdateImageActivitySchema import UpdateImageActivitySchema
 from services.schemas.activities.AddImageActivitySchema import AddImageActivitySchema
 from services.schemas.activities.ActivitySchema import ActivitySchema
@@ -83,17 +84,41 @@ class UpdateDeleteActivity(Resource):
         return {"message":"Success delete activity."}, 200
 
 class AllActivities(Resource):
+    @jwt_optional
     def get(self):
+        _activity_card_schema = ActivitySchema(exclude=("min_person","information","image2","image3","image4","description","duration",
+                                                "pickup","include","created_at","updated_at"))
+
+        current_user = get_jwt_identity()
         per_page = request.args.get('per_page',default=None,type=int) or 8
         page = request.args.get('page',default=None,type=int) or 1
         q = re.escape(request.args.get('q',default=None,type=str) or '')
+        sort = request.args.get('sort',default=None,type=str)
         if q:
             activities = Activity.query.filter(Activity.name.like('%' + q + '%')).paginate(page,per_page,error_out=False)
+        elif sort in ['cheap','expensive']:
+            if sort == 'cheap':
+                activities = Activity.query.order_by(Activity.price.asc()).paginate(page,per_page,error_out=False)
+            elif sort == 'expensive':
+                activities = Activity.query.order_by(Activity.price.desc()).paginate(page,per_page,error_out=False)
         else:
             activities = Activity.query.paginate(page,per_page,error_out=False)
 
+        # if user login extract data and show wishlist on card
+        if current_user:
+            data = _activity_card_schema.dump(activities.items,many=True)
+            for activity in data:
+                check_wishlist = Wishlist.query.filter(Wishlist.activity_id == activity['id'],
+                        Wishlist.user_id == current_user).first()
+                if check_wishlist:
+                    activity['love'] = True
+                else:
+                    activity['love'] = False
+        else:
+            data = _activity_card_schema.dump(activities.items,many=True)
+
         result = dict(
-            data = _activity_schema.dump(activities.items,many=True),
+            data = data,
             next_num = activities.next_num,
             prev_num = activities.prev_num,
             page = activities.page,
@@ -108,10 +133,28 @@ class GetActivitySlug(Resource):
         return _activity_schema.dump(activity), 200
 
 class GetActivitiesMostView(Resource):
+    @jwt_optional
     def get(self):
+        _activity_card_schema = ActivitySchema(exclude=("min_person","information","image2","image3","image4","description","duration",
+                                                "pickup","include","created_at","updated_at"))
+
+        current_user = get_jwt_identity()
         visits = Visits.visit_popular_by(visit_type='view_activity',limit=5)
         raw_activity = [Activity.query.get(index) for index,value in visits]
-        return _activity_schema.dump(raw_activity,many=True), 200
+        # if user login extract data and show wishlist on card
+        if current_user:
+            data = _activity_card_schema.dump(raw_activity,many=True)
+            for activity in data:
+                check_wishlist = Wishlist.query.filter(Wishlist.activity_id == activity['id'],
+                        Wishlist.user_id == current_user).first()
+                if check_wishlist:
+                    activity['love'] = True
+                else:
+                    activity['love'] = False
+        else:
+            data = _activity_card_schema.dump(raw_activity,many=True)
+
+        return data, 200
 
 class SearchActivitiesByName(Resource):
     def get(self):
