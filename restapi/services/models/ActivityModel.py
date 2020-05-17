@@ -24,6 +24,7 @@ class Activity(db.Model):
     updated_at = db.Column(db.DateTime,default=datetime.now)
 
     category_id = db.Column(db.Integer,db.ForeignKey('categories.id'),nullable=False)
+    wishlist = db.relationship('Wishlist',backref='activity',cascade='all,delete-orphan')
 
     def __init__(self,**data):
         self.name = data['name']

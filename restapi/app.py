@@ -1,6 +1,6 @@
 from services.serve import api, app
 from services.libs import OAuth2
-from services.resources import Users, Categories, Activities
+from services.resources import Users, Categories, Activities, Wishlists
 
 api.add_resource(Users.RegisterUser,'/register')
 api.add_resource(Users.ConfirmEmail,'/user-confirm/<token>',endpoint='user.confirm')
@@ -27,9 +27,16 @@ api.add_resource(Categories.CreateCategory,'/category/create')
 api.add_resource(Categories.UpdateDeleteCategory,'/category/crud/<int:id>')
 
 api.add_resource(Activities.AllActivities,'/activities')
+api.add_resource(Activities.GetActivitiesMostView,'/activities/most-viewed')
+api.add_resource(Activities.GetActivitiesPopularSearch,'/activities/popular-search')
+api.add_resource(Activities.SearchActivitiesByName,'/activities/search-by-name')
+api.add_resource(Activities.ClickActivityBySearchName,'/activity/search-by-name/click/<int:id>')
 api.add_resource(Activities.GetActivitySlug,'/activity/<slug>')
 api.add_resource(Activities.CreateActivity,'/activity/create')
 api.add_resource(Activities.UpdateDeleteActivity,'/activity/crud/<int:id>')
+
+api.add_resource(Wishlists.LoveActivity,'/wishlist/love/<int:activity_id>')
+api.add_resource(Wishlists.UnloveActivity,'/wishlist/unlove/<int:activity_id>')
 
 if __name__ == '__main__':
     app.run()

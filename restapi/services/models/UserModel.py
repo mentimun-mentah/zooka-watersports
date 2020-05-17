@@ -18,6 +18,7 @@ class User(db.Model):
     country_id = db.Column(db.Integer,db.ForeignKey('countries.id'),nullable=True)
 
     confirmation = db.relationship('Confirmation',backref='user',uselist=False,cascade='all,delete-orphan')
+    wishlist = db.relationship('Wishlist',backref='user',cascade='all,delete-orphan')
 
     def __init__(self,**args):
         self.name = args['name']
