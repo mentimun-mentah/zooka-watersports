@@ -9,7 +9,8 @@ class UserTest(BaseTest):
     REFRESH_TOKEN = None
     EMAIL_TEST = BaseTest.EMAIL_TEST
     EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
-    DIR_IMAGE = os.path.join(os.path.dirname(__file__),'../../static/test_image')
+    DIR_IMAGE = BaseTest.DIR_IMAGE
+    content_type = 'multipart/form-data'
 
     def login(self,email: str) -> "UserTest":
         user = User.query.filter_by(email=email).first()
@@ -446,16 +447,15 @@ class UserTest(BaseTest):
 
     def test_34_validation_update_avatar_user(self):
         # avatar not found
-        content_type = 'multipart/form-data'
         with self.app() as client:
-            res = client.put('/account/update-avatar',content_type=content_type,
+            res = client.put('/account/update-avatar',content_type=self.content_type,
                 data={'avatar':''},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(['Missing data for required field.'],json.loads(res.data)['avatar'])
         # danger file extension
         with self.app() as client:
-            res = client.put('/account/update-avatar',content_type=content_type,
+            res = client.put('/account/update-avatar',content_type=self.content_type,
                 data={'avatar': (io.BytesIO(b"print('sa')"), 'test.py')},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
@@ -465,7 +465,7 @@ class UserTest(BaseTest):
             img = io.BytesIO(im.read())
         # not valid file extension
         with self.app() as client:
-            res = client.put('/account/update-avatar',content_type=content_type,
+            res = client.put('/account/update-avatar',content_type=self.content_type,
                 data={'avatar': (img, 'test.gif')},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
@@ -476,20 +476,18 @@ class UserTest(BaseTest):
 
         # file cannot grater than 4 Mb
         with self.app() as client:
-            res = client.put('/account/update-avatar',content_type=content_type,
+            res = client.put('/account/update-avatar',content_type=self.content_type,
                 data={'avatar': (img, 'size.png')},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(["Image cannot grater than 4 Mb"],json.loads(res.data)['avatar'])
 
     def test_35_update_avatar_user(self):
-        content_type = 'multipart/form-data'
-
         with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
             img = io.BytesIO(im.read())
 
         with self.app() as client:
-            res = client.put('/account/update-avatar',content_type=content_type,
+            res = client.put('/account/update-avatar',content_type=self.content_type,
                 data={'avatar': (img, 'image.jpg')},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)

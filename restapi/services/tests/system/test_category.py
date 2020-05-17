@@ -1,4 +1,4 @@
-import json
+import json, io, os
 from basetest import BaseTest
 from services.models.UserModel import User
 from services.models.CategoryModel import Category
@@ -8,8 +8,10 @@ class CategoryTest(BaseTest):
     REFRESH_TOKEN = None
     EMAIL_TEST = BaseTest.EMAIL_TEST
     EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
-    NAME = 'testtestingtest'
-    NAME_2 = 'testingtesttesting'
+    NAME = BaseTest.NAME
+    NAME_2 = BaseTest.NAME_2
+    DIR_IMAGE = BaseTest.DIR_IMAGE
+    content_type = 'multipart/form-data'
 
     def login(self,email: str) -> "CategoryTest":
         user = User.query.filter_by(email=email).first()
@@ -58,23 +60,63 @@ class CategoryTest(BaseTest):
         user.save_to_db()
         # login user 1
         self.login(self.EMAIL_TEST)
+
+        # check image required
+        with self.app() as client:
+            res = client.post('/category/create',content_type=self.content_type,headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image':''})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Missing data for required field."],json.loads(res.data)['image'])
+        # check dangerous file
+        with self.app() as client:
+            res = client.post('/category/create',content_type=self.content_type,headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image': (io.BytesIO(b"print('sa')"), 'test.py')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Cannot identify image file"],json.loads(res.data)['image'])
+
+        with open(os.path.join(self.DIR_IMAGE,'test.gif'),'rb') as im:
+            img = io.BytesIO(im.read())
+        # check file extension
+        with self.app() as client:
+            res = client.post('/category/create',content_type=self.content_type,headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                    data={'image': (img,'test.gif')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image must be jpg|png|jpeg"],json.loads(res.data)['image'])
+
+        with open(os.path.join(self.DIR_IMAGE,'size.png'),'rb') as im:
+            img = io.BytesIO(im.read())
+        # file can't be grater than 4 Mb
+        with self.app() as client:
+            res = client.post('/category/create',content_type=self.content_type,headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image': (img,'size.png')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image cannot grater than 4 Mb"],json.loads(res.data)['image'])
+
+        with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
         # name blank
         with self.app() as client:
-            res = client.post('/category/create',json={'name':''},
+            res = client.post('/category/create',content_type=self.content_type,data={'image': (img,'image.jpg'),'name':''},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(["Length must be between 3 and 100."],json.loads(res.data)['name'])
 
     def test_02_create_category(self):
+        with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
+
         with self.app() as client:
-            res = client.post('/category/create',json={'name': self.NAME},
+            res = client.post('/category/create',content_type=self.content_type,data={'image': (img,'image.jpg'),'name': self.NAME},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(201,res.status_code)
             self.assertEqual("Success add category.",json.loads(res.data)['message'])
 
     def test_03_name_already_taken(self):
+        with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
+
         with self.app() as client:
-            res = client.post('/category/create',json={'name': self.NAME},
+            res = client.post('/category/create',content_type=self.content_type,data={'image': (img,'image.jpg'),'name': self.NAME},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(['The name has already been taken.'],json.loads(res.data)['name'])
@@ -102,13 +144,14 @@ class CategoryTest(BaseTest):
             self.assertIn("updated_at",json.loads(res.data).keys())
             self.assertIn("created_at",json.loads(res.data).keys())
             self.assertIn("name",json.loads(res.data).keys())
+            self.assertIn("image",json.loads(res.data).keys())
             self.assertIn("id",json.loads(res.data).keys())
 
     def test_05_validation_update_category(self):
         self.login(self.EMAIL_TEST_2)
         # check user is admin
         with self.app() as client:
-            res = client.put('/category/crud/9999',json={'name':''},
+            res = client.put('/category/crud/9999',content_type=self.content_type,data={'name':''},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(403,res.status_code)
             self.assertEqual("Forbidden access this endpoint!",json.loads(res.data)['msg'])
@@ -116,21 +159,48 @@ class CategoryTest(BaseTest):
         self.login(self.EMAIL_TEST)
         # category not found
         with self.app() as client:
-            res = client.put('/category/crud/9999',json={'name':''},
+            res = client.put('/category/crud/9999',content_type=self.content_type,data={'name':''},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(404,res.status_code)
             self.assertEqual("Category not found",json.loads(res.data)['message'])
 
         category = Category.query.filter_by(name=self.NAME).first()
-        # name blank
+        # check dangerous file
         with self.app() as client:
-            res = client.put('/category/crud/{}'.format(category.id),json={'name':''},
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image': (io.BytesIO(b"print('sa')"), 'test.py')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Cannot identify image file"],json.loads(res.data)['image'])
+
+        with open(os.path.join(self.DIR_IMAGE,'test.gif'),'rb') as im:
+            img = io.BytesIO(im.read())
+        # check file extension
+        with self.app() as client:
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image': (img,'test.gif')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image must be jpg|png|jpeg"],json.loads(res.data)['image'])
+
+        with open(os.path.join(self.DIR_IMAGE,'size.png'),'rb') as im:
+            img = io.BytesIO(im.read())
+        # file can't be grater than 4 Mb
+        with self.app() as client:
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"},
+                data={'image': (img,'size.png')})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Image cannot grater than 4 Mb"],json.loads(res.data)['image'])
+        # name blank & image can be null
+        with self.app() as client:
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,data={'image':'','name':''},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(["Length must be between 3 and 100."],json.loads(res.data)['name'])
         # name already exists
         with self.app() as client:
-            res = client.put('/category/crud/{}'.format(category.id),json={'name': self.NAME},
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,data={'image':'','name': self.NAME},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
             self.assertListEqual(['The name has already been taken.'],json.loads(res.data)['name'])
@@ -138,8 +208,12 @@ class CategoryTest(BaseTest):
     def test_06_update_category(self):
         category = Category.query.filter_by(name=self.NAME).first()
 
+        with open(os.path.join(self.DIR_IMAGE,'image.jpg'),'rb') as im:
+            img = io.BytesIO(im.read())
+
         with self.app() as client:
-            res = client.put('/category/crud/{}'.format(category.id),json={'name': self.NAME_2},
+            res = client.put('/category/crud/{}'.format(category.id),content_type=self.content_type,
+                data={'image': (img,'image.jpg'),'name': self.NAME_2},
                 headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)
             self.assertEqual("Success update category.",json.loads(res.data)['message'])

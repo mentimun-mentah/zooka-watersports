@@ -6,6 +6,7 @@ class Category(db.Model):
 
     id = db.Column(db.Integer,primary_key=True)
     name = db.Column(db.String(100),unique=True,index=True,nullable=False)
+    image = db.Column(db.String(100),nullable=False)
     created_at = db.Column(db.DateTime,default=datetime.now)
     updated_at = db.Column(db.DateTime,default=datetime.now)
 
