@@ -9,6 +9,10 @@ class Wishlist(db.Model):
     user_id = db.Column(db.Integer,db.ForeignKey('users.id'),nullable=False)
     created_at = db.Column(db.DateTime,default=datetime.now)
 
+    @classmethod
+    def check_wishlist(cls,activity: int, user: int) -> "Wishlist":
+        return cls.query.filter(cls.activity_id == activity, cls.user_id == user).first()
+
     def save_to_db(self) -> None:
         db.session.add(self)
         db.session.commit()

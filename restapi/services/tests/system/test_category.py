@@ -219,17 +219,9 @@ class CategoryTest(BaseTest):
             self.assertEqual("Success update category.",json.loads(res.data)['message'])
 
     def test_07_get_all_category(self):
-        self.login(self.EMAIL_TEST_2)
-        # check user is admin
+        # check list is not empty & no need login
         with self.app() as client:
-            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(403,res.status_code)
-            self.assertEqual("Forbidden access this endpoint!",json.loads(res.data)['msg'])
-
-        self.login(self.EMAIL_TEST)
-        # check list is not empty
-        with self.app() as client:
-            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.get('/categories')
             self.assertEqual(200,res.status_code)
             self.assertNotEqual([],json.loads(res.data))
 

@@ -21,6 +21,8 @@ class ActivitySchema(Schema):
     updated_at = fields.DateTime(dump_only=True)
     category_id = fields.Int(required=True)
 
+    category = fields.Nested("CategorySchema",only=("name",))
+
     @validates('category_id')
     def validate_category_id(self,value):
         if not Category.query.get(value):

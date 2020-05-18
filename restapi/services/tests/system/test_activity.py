@@ -459,6 +459,7 @@ class ActivityTest(BaseTest):
             self.assertIn('created_at',json.loads(res.data).keys())
             self.assertIn('updated_at',json.loads(res.data).keys())
             self.assertIn('category_id',json.loads(res.data).keys())
+            self.assertIn('category',json.loads(res.data).keys())
 
     def test_13_get_activity_by_slug(self):
         # note this endpoint is public data
@@ -490,6 +491,9 @@ class ActivityTest(BaseTest):
             self.assertIn('created_at',json.loads(res.data).keys())
             self.assertIn('updated_at',json.loads(res.data).keys())
             self.assertIn('category_id',json.loads(res.data).keys())
+            self.assertIn('category',json.loads(res.data).keys())
+            self.assertIn('seen',json.loads(res.data).keys())
+            self.assertIn('wishlist',json.loads(res.data).keys())
 
     def test_14_get_all_activity(self):
         with self.app() as client:
