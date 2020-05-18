@@ -1,6 +1,6 @@
 from services.serve import api, app
 from services.libs import OAuth2
-from services.resources import Users, Categories, Activities, Wishlists
+from services.resources import Users, Categories, Activities, Wishlists, Comments
 
 api.add_resource(Users.RegisterUser,'/register')
 api.add_resource(Users.ConfirmEmail,'/user-confirm/<token>',endpoint='user.confirm')
@@ -37,6 +37,9 @@ api.add_resource(Activities.UpdateDeleteActivity,'/activity/crud/<int:id>')
 
 api.add_resource(Wishlists.LoveActivity,'/wishlist/love/<int:activity_id>')
 api.add_resource(Wishlists.UnloveActivity,'/wishlist/unlove/<int:activity_id>')
+
+api.add_resource(Comments.CreateCommentActivitiy,'/comment/activity/<int:activity_id>')
+api.add_resource(Comments.DeleteCommentActivity,'/comment/activity/<int:id>')
 
 if __name__ == '__main__':
     app.run()

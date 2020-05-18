@@ -6,41 +6,6 @@ from services.models.CategoryModel import Category
 from services.models.VisitModel import Visit
 
 class ActivityTest(BaseTest):
-    ACCESS_TOKEN = None
-    REFRESH_TOKEN = None
-    EMAIL_TEST = BaseTest.EMAIL_TEST
-    EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
-    NAME = BaseTest.NAME
-    NAME_2 = BaseTest.NAME_2
-    DIR_IMAGE = BaseTest.DIR_IMAGE
-    content_type = 'multipart/form-data'
-
-    def login(self,email: str) -> "ActivityTest":
-        user = User.query.filter_by(email=email).first()
-
-        with self.app() as client:
-            # get access token and refresh token
-            res = client.post('/login',json={"email": user.email,"password":"asdasd"})
-            self.assertEqual(200,res.status_code)
-            self.assertIn('access_token',json.loads(res.data).keys())
-            self.assertIn('refresh_token',json.loads(res.data).keys())
-            self.assertIn('name',json.loads(res.data).keys())
-            self.__class__.ACCESS_TOKEN = json.loads(res.data)['access_token']
-            self.__class__.REFRESH_TOKEN = json.loads(res.data)['refresh_token']
-
-    def register(self,email: str) -> "ActivityTest":
-        # register user asd
-        with self.app() as client:
-            res = client.post('/register',json={'name':'asd',
-                'email': email,'password':'asdasd',
-                'confirm_password':'asdasd','terms':True})
-        self.assertEqual(201,res.status_code)
-        self.assertEqual('Check your email to activated user.',json.loads(res.data)['message'])
-
-        user = User.query.filter_by(email=email).first()
-        user.confirmation.activated = True
-        user.confirmation.save_to_db()
-
     def test_00_add_2_user(self):
         self.register(self.EMAIL_TEST)
         self.register(self.EMAIL_TEST_2)
@@ -459,6 +424,7 @@ class ActivityTest(BaseTest):
             self.assertIn('created_at',json.loads(res.data).keys())
             self.assertIn('updated_at',json.loads(res.data).keys())
             self.assertIn('category_id',json.loads(res.data).keys())
+            self.assertIn('category',json.loads(res.data).keys())
 
     def test_13_get_activity_by_slug(self):
         # note this endpoint is public data
@@ -490,6 +456,9 @@ class ActivityTest(BaseTest):
             self.assertIn('created_at',json.loads(res.data).keys())
             self.assertIn('updated_at',json.loads(res.data).keys())
             self.assertIn('category_id',json.loads(res.data).keys())
+            self.assertIn('category',json.loads(res.data).keys())
+            self.assertIn('seen',json.loads(res.data).keys())
+            self.assertIn('wishlist',json.loads(res.data).keys())
 
     def test_14_get_all_activity(self):
         with self.app() as client:

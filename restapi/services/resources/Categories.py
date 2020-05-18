@@ -58,8 +58,6 @@ class UpdateDeleteCategory(Resource):
         return {"message":"Success delete category."}, 200
 
 class AllCategory(Resource):
-    @jwt_required
-    @admin_required
     def get(self):
         categories = Category.query.all()
         return _category_schema.dump(categories,many=True), 200

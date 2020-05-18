@@ -4,41 +4,6 @@ from services.models.UserModel import User
 from services.models.CategoryModel import Category
 
 class CategoryTest(BaseTest):
-    ACCESS_TOKEN = None
-    REFRESH_TOKEN = None
-    EMAIL_TEST = BaseTest.EMAIL_TEST
-    EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
-    NAME = BaseTest.NAME
-    NAME_2 = BaseTest.NAME_2
-    DIR_IMAGE = BaseTest.DIR_IMAGE
-    content_type = 'multipart/form-data'
-
-    def login(self,email: str) -> "CategoryTest":
-        user = User.query.filter_by(email=email).first()
-
-        with self.app() as client:
-            # get access token and refresh token
-            res = client.post('/login',json={"email": user.email,"password":"asdasd"})
-            self.assertEqual(200,res.status_code)
-            self.assertIn('access_token',json.loads(res.data).keys())
-            self.assertIn('refresh_token',json.loads(res.data).keys())
-            self.assertIn('name',json.loads(res.data).keys())
-            self.__class__.ACCESS_TOKEN = json.loads(res.data)['access_token']
-            self.__class__.REFRESH_TOKEN = json.loads(res.data)['refresh_token']
-
-    def register(self,email: str) -> "CategoryTest":
-        # register user asd
-        with self.app() as client:
-            res = client.post('/register',json={'name':'asd',
-                'email': email,'password':'asdasd',
-                'confirm_password':'asdasd','terms':True})
-        self.assertEqual(201,res.status_code)
-        self.assertEqual('Check your email to activated user.',json.loads(res.data)['message'])
-
-        user = User.query.filter_by(email=email).first()
-        user.confirmation.activated = True
-        user.confirmation.save_to_db()
-
     def test_00_add_2_user(self):
         self.register(self.EMAIL_TEST)
         self.register(self.EMAIL_TEST_2)
@@ -219,17 +184,9 @@ class CategoryTest(BaseTest):
             self.assertEqual("Success update category.",json.loads(res.data)['message'])
 
     def test_07_get_all_category(self):
-        self.login(self.EMAIL_TEST_2)
-        # check user is admin
+        # check list is not empty & no need login
         with self.app() as client:
-            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(403,res.status_code)
-            self.assertEqual("Forbidden access this endpoint!",json.loads(res.data)['msg'])
-
-        self.login(self.EMAIL_TEST)
-        # check list is not empty
-        with self.app() as client:
-            res = client.get('/categories',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.get('/categories')
             self.assertEqual(200,res.status_code)
             self.assertNotEqual([],json.loads(res.data))
 
