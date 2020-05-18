@@ -4,10 +4,13 @@ from services.models.UserModel import User
 from services.models.CategoryModel import Category
 from services.models.ActivityModel import Activity
 
-class WishlistTest(BaseTest):
-    def test_00_add_user(self):
+class CommentTest(BaseTest):
+    def test_00_add_2_user(self):
         self.register(self.EMAIL_TEST)
+        self.register(self.EMAIL_TEST_2)
+
         self.assertTrue(User.query.filter_by(email=self.EMAIL_TEST).first())
+        self.assertTrue(User.query.filter_by(email=self.EMAIL_TEST_2).first())
 
     def test_01_create_category(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
@@ -46,51 +49,52 @@ class WishlistTest(BaseTest):
             self.assertEqual(201,res.status_code)
             self.assertEqual("Success add activity.",json.loads(res.data)['message'])
 
-    def test_03_validation_love_activity(self):
+    def test_03_validation_create_comment_activity(self):
         # activity not found
         with self.app() as client:
-            res = client.post('/wishlist/love/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.post('/comment/activity/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(404,res.status_code)
             self.assertEqual('Activity not found',json.loads(res.data)['message'])
 
-    def test_04_love_activity(self):
         activity = Activity.query.filter_by(name=self.NAME).first()
-        # success add activity in wishlist
+        # comment subject blank
         with self.app() as client:
-            res = client.post('/wishlist/love/{}'.format(activity.id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(200,res.status_code)
-            self.assertEqual('Activity entered into the wishlist',json.loads(res.data)['message'])
+            res = client.post('/comment/activity/{}'.format(activity.id),json={'subject':''},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertListEqual(["Shorter than minimum length 5."],json.loads(res.data)['subject'])
 
-    def test_05_love_activity_already_in_wishlist(self):
+    def test_04_create_comment_activity(self):
         activity = Activity.query.filter_by(name=self.NAME).first()
-        # activity already in wishlist
         with self.app() as client:
-            res = client.post('/wishlist/love/{}'.format(activity.id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(200,res.status_code)
-            self.assertEqual('Activity already in wishlist',json.loads(res.data)['message'])
+            res = client.post('/comment/activity/{}'.format(activity.id),json={'subject':'asdasdasd'},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(201,res.status_code)
+            self.assertEqual('Comment success added',json.loads(res.data)['message'])
 
-    def test_06_validation_unlove_activity(self):
-        # activity not found
+        self.login(self.EMAIL_TEST_2)
+
+    def test_05_validation_delete_comment_activity(self):
+        # comment not found
         with self.app() as client:
-            res = client.delete('/wishlist/unlove/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.delete('/comment/activity/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(404,res.status_code)
-            self.assertEqual('Activity not found',json.loads(res.data)['message'])
-
-    def test_07_unlove_activity(self):
-        activity = Activity.query.filter_by(name=self.NAME).first()
-        # success remove activity in wishlist
+            self.assertEqual('Comment not found',json.loads(res.data)['message'])
+        # other user delete comment
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
         with self.app() as client:
-            res = client.delete('/wishlist/unlove/{}'.format(activity.id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(200,res.status_code)
-            self.assertEqual('Activity remove from wishlist',json.loads(res.data)['message'])
+            res = client.delete('/comment/activity/{}'.format(user.comments[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("You can't delete comment other person",json.loads(res.data)['message'])
 
-    def test_08_unlove_activity_already_in_wishlist(self):
-        activity = Activity.query.filter_by(name=self.NAME).first()
-        # activity not on wishlist
+    def test_06_delete_comment_activity(self):
+        self.login(self.EMAIL_TEST)
+
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
         with self.app() as client:
-            res = client.delete('/wishlist/unlove/{}'.format(activity.id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.delete('/comment/activity/{}'.format(user.comments[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)
-            self.assertEqual('Activity not on wishlist',json.loads(res.data)['message'])
+            self.assertEqual("Comment success deleted",json.loads(res.data)['message'])
 
     def test_97_delete_activity(self):
         activity = Activity.query.filter_by(name=self.NAME).first()
@@ -108,4 +112,6 @@ class WishlistTest(BaseTest):
 
     def test_99_delete_user_from_db(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        user.delete_from_db()
+        user = User.query.filter_by(email=self.EMAIL_TEST_2).first()
         user.delete_from_db()

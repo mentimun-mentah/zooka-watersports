@@ -5,26 +5,6 @@ from services.models.UserModel import User
 from services.models.PasswordResetModel import PasswordReset
 
 class UserTest(BaseTest):
-    ACCESS_TOKEN = None
-    REFRESH_TOKEN = None
-    EMAIL_TEST = BaseTest.EMAIL_TEST
-    EMAIL_TEST_2 = BaseTest.EMAIL_TEST_2
-    DIR_IMAGE = BaseTest.DIR_IMAGE
-    content_type = 'multipart/form-data'
-
-    def login(self,email: str) -> "UserTest":
-        user = User.query.filter_by(email=email).first()
-
-        with self.app() as client:
-            # get access token and refresh token
-            res = client.post('/login',json={"email": user.email,"password":"asdasd"})
-            self.assertEqual(200,res.status_code)
-            self.assertIn('access_token',json.loads(res.data).keys())
-            self.assertIn('refresh_token',json.loads(res.data).keys())
-            self.assertIn('name',json.loads(res.data).keys())
-            self.__class__.ACCESS_TOKEN = json.loads(res.data)['access_token']
-            self.__class__.REFRESH_TOKEN = json.loads(res.data)['refresh_token']
-
     def test_00_validation_register(self):
         # all field blank
         with self.app() as client:
