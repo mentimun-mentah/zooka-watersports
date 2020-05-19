@@ -1,5 +1,5 @@
 from flask_restful import Resource, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, jwt_optional, get_jwt_identity
 from services.models.CommentModel import Comment
 from services.models.ActivityModel import Activity
 from services.schemas.comments.CommentSchema import CommentSchema
@@ -8,6 +8,7 @@ from sqlalchemy import orm
 _comment_schema = CommentSchema()
 
 class CreateAndGetCommentActivitiy(Resource):
+    @jwt_optional
     def get(self,activity_id: int):
         per_page = request.args.get('per_page',default=None,type=int) or 5
         page = request.args.get('page',default=None,type=int) or 1
@@ -18,6 +19,7 @@ class CreateAndGetCommentActivitiy(Resource):
 
         result = dict(
             data = _comment_schema.dump(comments.items,many=True),
+            user_id = get_jwt_identity(),
             next_num = comments.next_num,
             prev_num = comments.prev_num,
             page = comments.page,
