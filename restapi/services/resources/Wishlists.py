@@ -17,8 +17,7 @@ class UnloveActivity(Resource):
     @jwt_required
     def delete(self,activity_id: int):
         activity = Activity.query.filter_by(id=activity_id).first_or_404('Activity not found')
-        wishlist = Wishlist.check_wishlist(activity.id,get_jwt_identity())
-        if wishlist:
+        if (wishlist := Wishlist.check_wishlist(activity.id,get_jwt_identity())):
             wishlist.delete_from_db()
             return {"message":"Activity remove from wishlist"}, 200
         return {"message":"Activity not on wishlist"}, 200
