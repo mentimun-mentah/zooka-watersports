@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, jwt_optional, get_jwt_identity
 from services.models.ActivityModel import Activity
 from services.models.VisitModel import Visit
 from services.models.WishlistModel import Wishlist
+from services.models.CommentModel import Comment
 from services.schemas.activities.UpdateImageActivitySchema import UpdateImageActivitySchema
 from services.schemas.activities.AddImageActivitySchema import AddImageActivitySchema
 from services.schemas.activities.ActivitySchema import ActivitySchema
@@ -89,14 +90,12 @@ class AllActivities(Resource):
         _activity_card_schema = ActivitySchema(exclude=("min_person","information","image2","image3","image4","description","duration",
                                                 "pickup","include","created_at","updated_at","category"))
 
-        current_user = get_jwt_identity()
         per_page = request.args.get('per_page',default=None,type=int) or 8
         page = request.args.get('page',default=None,type=int) or 1
-        q = re.escape(request.args.get('q',default=None,type=str) or '')
-        sort = request.args.get('sort',default=None,type=str)
-        if q:
+
+        if (q := re.escape(request.args.get('q',default=None,type=str) or '')):
             activities = Activity.query.filter(Activity.name.like('%' + q + '%')).paginate(page,per_page,error_out=False)
-        elif sort in ['cheap','expensive']:
+        elif (sort := request.args.get('sort',default=None,type=str)) in ['cheap','expensive']:
             if sort == 'cheap':
                 activities = Activity.query.order_by(Activity.price.asc()).paginate(page,per_page,error_out=False)
             elif sort == 'expensive':
@@ -106,12 +105,9 @@ class AllActivities(Resource):
 
         # if user login extract data and show wishlist on card
         data = _activity_card_schema.dump(activities.items,many=True)
-        if current_user:
+        if (current_user := get_jwt_identity()):
             for activity in data:
-                if Wishlist.check_wishlist(activity['id'],current_user):
-                    activity['love'] = True
-                else:
-                    activity['love'] = False
+                activity['love'] = True if Wishlist.check_wishlist(activity['id'],current_user) else False
 
         result = dict(
             data = data,
@@ -123,15 +119,20 @@ class AllActivities(Resource):
         return result, 200
 
 class GetActivitySlug(Resource):
+    @jwt_optional
     def get(self,slug: str):
         activity = Activity.query.filter_by(slug=slug).first_or_404('Activity not found')
         Visit.set_visit(ip=request.remote_addr,visitable_id=activity.id,visitable_type='view_activity')
         data = _activity_schema.dump(activity)
-        # get wishlist & seen data
-        seen = Visit.get_seen_activity(visit_type='view_activity',visit_id=activity.id)
-        wishlist = Wishlist.query.filter_by(activity_id=activity.id).count()
-        data['seen'] = seen
-        data['wishlist'] = wishlist
+        # get wishlist,seen,discussion data
+        data['seen'] = Visit.get_seen_activity(visit_type='view_activity',visit_id=activity.id)
+        data['wishlist'] = Wishlist.query.filter_by(activity_id=activity.id).count()
+        data['discussion'] = Comment.query.filter(Comment.commentable_id == activity.id,
+                                            Comment.commentable_type == 'activity').count()
+
+        if (current_user := get_jwt_identity()):
+            data['love'] = True if Wishlist.check_wishlist(data['id'],current_user) else False
+
         return data, 200
 
 class GetActivitiesMostView(Resource):
@@ -140,25 +141,20 @@ class GetActivitiesMostView(Resource):
         _activity_card_schema = ActivitySchema(exclude=("min_person","information","image2","image3","image4","description","duration",
                                                 "pickup","include","created_at","updated_at","category"))
 
-        current_user = get_jwt_identity()
         visits = Visit.visit_popular_by(visit_type='view_activity',limit=5)
         raw_activity = [Activity.query.get(index) for index,value in visits]
         # if user login extract data and show wishlist on card
         data = _activity_card_schema.dump(raw_activity,many=True)
-        if current_user:
+        if (current_user := get_jwt_identity()):
             for activity in data:
-                if Wishlist.check_wishlist(activity['id'],current_user):
-                    activity['love'] = True
-                else:
-                    activity['love'] = False
+                activity['love'] = True if Wishlist.check_wishlist(activity['id'],current_user) else False
 
         return data, 200
 
 class SearchActivitiesByName(Resource):
     def get(self):
         _activity_name_schema = ActivitySchema(only=("name",))
-        q = re.escape(request.args.get('q',default=None,type=str) or '')
-        if q:
+        if (q := re.escape(request.args.get('q',default=None,type=str) or '')):
             activities = Activity.query.filter(Activity.name.like('%' + q + '%')).limit(5).all()
         else:
             activities = []

@@ -4,7 +4,7 @@ from services.models.UserModel import User
 from services.models.CategoryModel import Category
 from services.models.ActivityModel import Activity
 
-class CommentTest(BaseTest):
+class ReplyTest(BaseTest):
     def test_00_add_2_user(self):
         self.register(self.EMAIL_TEST)
         self.register(self.EMAIL_TEST_2)
@@ -49,22 +49,7 @@ class CommentTest(BaseTest):
             self.assertEqual(201,res.status_code)
             self.assertEqual("Success add activity.",json.loads(res.data)['message'])
 
-    def test_03_validation_create_comment_activity(self):
-        # activity not found
-        with self.app() as client:
-            res = client.post('/comment/activity/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(404,res.status_code)
-            self.assertEqual('Activity not found',json.loads(res.data)['message'])
-
-        activity = Activity.query.filter_by(name=self.NAME).first()
-        # comment subject blank
-        with self.app() as client:
-            res = client.post('/comment/activity/{}'.format(activity.id),json={'subject':''},
-                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
-            self.assertEqual(400,res.status_code)
-            self.assertListEqual(["Shorter than minimum length 5."],json.loads(res.data)['subject'])
-
-    def test_04_create_comment_activity(self):
+    def test_03_create_comment_activity(self):
         activity = Activity.query.filter_by(name=self.NAME).first()
         with self.app() as client:
             res = client.post('/comment/activity/{}'.format(activity.id),json={'subject':'asdasdasd'},
@@ -72,42 +57,52 @@ class CommentTest(BaseTest):
             self.assertEqual(201,res.status_code)
             self.assertEqual('Comment success added',json.loads(res.data)['message'])
 
-        self.login(self.EMAIL_TEST_2)
-
-    def test_05_get_comment_activity(self):
-        # activity not found
-        with self.app() as client:
-            res = client.get('/comment/activity/0')
-            self.assertEqual(404,res.status_code)
-            self.assertEqual('Activity not found',json.loads(res.data)['message'])
-
-        activity = Activity.query.filter_by(name=self.NAME).first()
-        with self.app() as client:
-            res = client.get('/comment/activity/{}'.format(activity.id))
-            self.assertEqual(200,res.status_code)
-            self.assertNotEqual({},json.loads(res.data))
-
-    def test_06_validation_delete_comment_activity(self):
+    def test_04_validation_reply_comment(self):
         # comment not found
         with self.app() as client:
-            res = client.delete('/comment/activity/9999',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.post('/reply/0',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(404,res.status_code)
             self.assertEqual('Comment not found',json.loads(res.data)['message'])
-        # other user delete comment
+        # reply subject blank
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
         with self.app() as client:
-            res = client.delete('/comment/activity/{}'.format(user.comments[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.post('/reply/{}'.format(user.comments[0].id),json={'subject':''},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(400,res.status_code)
-            self.assertEqual("You can't delete comment other person",json.loads(res.data)['message'])
+            self.assertListEqual(["Shorter than minimum length 5."],json.loads(res.data)['subject'])
 
-    def test_07_delete_comment_activity(self):
+    def test_05_reply_comment(self):
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        with self.app() as client:
+            res = client.post('/reply/{}'.format(user.comments[0].id),json={'subject':'asdasdasd'},
+                headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(201,res.status_code)
+            self.assertEqual('Reply success added',json.loads(res.data)['message'])
+
+    def test_06_validation_delete_reply(self):
+        # reply not found
+        with self.app() as client:
+            res = client.delete('/reply/delete/0',headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(404,res.status_code)
+            self.assertEqual('Reply not found',json.loads(res.data)['message'])
+
+        self.login(self.EMAIL_TEST_2)
+        user = User.query.filter_by(email=self.EMAIL_TEST).first()
+        # other user delete reply
+        with self.app() as client:
+            res = client.delete('/reply/delete/{}'.format(user.replies[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            self.assertEqual(400,res.status_code)
+            self.assertEqual("You can't delete reply other person",json.loads(res.data)['message'])
+
         self.login(self.EMAIL_TEST)
 
+    def test_07_delete_reply(self):
         user = User.query.filter_by(email=self.EMAIL_TEST).first()
+
         with self.app() as client:
-            res = client.delete('/comment/activity/{}'.format(user.comments[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
+            res = client.delete('/reply/delete/{}'.format(user.replies[0].id),headers={'Authorization':f"Bearer {self.ACCESS_TOKEN}"})
             self.assertEqual(200,res.status_code)
-            self.assertEqual("Comment success deleted",json.loads(res.data)['message'])
+            self.assertEqual("Reply success deleted",json.loads(res.data)['message'])
 
     def test_97_delete_activity(self):
         activity = Activity.query.filter_by(name=self.NAME).first()

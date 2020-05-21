@@ -75,18 +75,12 @@ class GoogleAuthorize(Resource):
         google.fetch_token(_GOOGLE_TOKEN_URL, client_secret=_GOOGLE_CLIENT_SECRET,authorization_response=request.url)
         result = google.get('https://www.googleapis.com/oauth2/v3/userinfo').json()
 
-        check_user = User.query.filter_by(email=result['email']).first()
-        if check_user:
-            token = CreateToken.get_token(check_user.id)
-            return token
+        if (check_user := User.query.filter_by(email=result['email']).first()):
+            return CreateToken.get_token(check_user.id)
 
-        user_id = SaveUser.save_user_to_db(name=result['name'],
-            email=result['email'],
-            picture=result['picture'])
-
+        user_id = SaveUser.save_user_to_db(name=result['name'],email=result['email'],picture=result['picture'])
         # return access_token & refresh token
-        token = CreateToken.get_token(user_id)
-        return token
+        return CreateToken.get_token(user_id)
 
 class FacebookLogin(Resource):
     def get(self):
@@ -102,15 +96,9 @@ class FacebookAuthorize(Resource):
         facebook.fetch_token(_FACEBOOK_TOKEN_URL,client_secret=_FACBEOOK_CLIENT_SECRET,authorization_response=request.url)
         result = facebook.get('https://graph.facebook.com/me?fields=name,email,picture').json()
 
-        check_user = User.query.filter_by(email=result['email']).first()
-        if check_user:
-            token = CreateToken.get_token(check_user.id)
-            return token
+        if (check_user := User.query.filter_by(email=result['email']).first()):
+            return CreateToken.get_token(check_user.id)
 
-        user_id = SaveUser.save_user_to_db(name=result['name'],
-            email=result['email'],
-            picture=result['picture']['data']['url'])
-
+        user_id = SaveUser.save_user_to_db(name=result['name'],email=result['email'],picture=result['picture']['data']['url'])
         # return access_token & refresh token
-        token = CreateToken.get_token(user_id)
-        return token
+        return CreateToken.get_token(user_id)

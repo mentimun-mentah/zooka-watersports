@@ -459,6 +459,7 @@ class ActivityTest(BaseTest):
             self.assertIn('category',json.loads(res.data).keys())
             self.assertIn('seen',json.loads(res.data).keys())
             self.assertIn('wishlist',json.loads(res.data).keys())
+            self.assertIn('discussion',json.loads(res.data).keys())
 
     def test_14_get_all_activity(self):
         with self.app() as client:

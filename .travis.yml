@@ -7,7 +7,7 @@ env:
     - ACCESS_TOKEN_EXPIRES=900 REFRESH_TOKEN_EXPIRES=2592000 SMTP_SERVER=smtp.gmail.com SMTP_PORT=465 SMTP_USE_SSL=True SMTP_EMAIL=zookatest@gmail.com SMTP_PASSWORD=zooka2020
 language: python
 python:
-  - "3.7"
+  - "3.8"
 cache: pip
 install:
   - pip install -r restapi/requirements.txt

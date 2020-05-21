@@ -20,6 +20,7 @@ class User(db.Model):
     confirmation = db.relationship('Confirmation',backref='user',uselist=False,cascade='all,delete-orphan')
     wishlists = db.relationship('Wishlist',backref='user',cascade='all,delete-orphan')
     comments = db.relationship('Comment',backref='user',cascade='all,delete-orphan')
+    replies = db.relationship('Reply',backref='user',cascade='all,delete-orphan')
 
     def __init__(self,**args):
         self.name = args['name']
